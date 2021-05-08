@@ -7,7 +7,7 @@ SUCCESS_MSG='== Server responded successfully'
 ERROR_MSG='XX Response failed!'
 
 docker build -f ej3.Dockerfile -t nc-ubuntu .
-docker run -i --network=fiuba-dist1-tp0_testing_net nc-ubuntu sh -c "\
+docker run -i --network=fiuba-dist1-tp1_testing_net nc-ubuntu sh -c "\
     echo $MESSAGE | \
     nc $SERVER_IP $SERVER_PORT" | \
     (read RESPONSE;\

@@ -6,6 +6,11 @@ import logging
 from common.server import Server
 import configparser
 
+from common.miner import Miner
+from multiprocessing import Process, Queue
+
+NUMER_OF_MINERS = 5
+
 def parse_config_params():
 	""" Parse env variables to find program config params
 
@@ -44,9 +49,25 @@ def main():
 	initialize_log()
 	config_params = parse_config_params()
 
+	pool_queues = []
+	miners_procs = []
+	for id in range(NUMER_OF_MINERS):
+		q = Queue()
+		pool_queues.append(q)
+		miners_procs.append(Process(target=miner_init, args=(id, q,)))
+
+	for w in miners_procs:
+		w.start()
+
 	# Initialize server and start server loop
 	server = Server(config_params["port"], config_params["listen_backlog"])
-	server.run()
+	server.run(pool_queues, miners_procs)
+
+
+def miner_init(id, blocks_queue):
+	miner = Miner(id, blocks_queue)
+	miner.run()
+
 
 def initialize_log():
 	"""

@@ -1,5 +1,6 @@
 import socket
 import logging
+from common.blockchain import Block
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -8,7 +9,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
-    def run(self):
+    def run(self, pool_queues, miners_procs):
         """
         Dummy Server loop
 
@@ -21,21 +22,26 @@ class Server:
         # the server
         while True:
             client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+            self.__handle_client_connection(client_sock, pool_queues)
 
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self, client_sock, pool_queues):
         """
         Read message from a specific client socket and closes the socket
 
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        newBlock = Block(["{{'user_id': 'user_{0}', 'user_data': 'data_{0}'}}".format(1)])
+        newBlock.header['difficulty'] = 1
+        newBlock.header['prev_hash'] = 13286618
         try:
             msg = client_sock.recv(1024).rstrip()
             logging.info(
                 'Message received from connection {}. Msg: {}'
                     .format(client_sock.getpeername(), msg))
+            for p in pool_queues:
+                p.put(newBlock)
             client_sock.send("Your Message has been received: {}\n".format(msg).encode('utf-8'))
         except OSError:
             logging.info("Error while reading socket {}".format(client_sock))
