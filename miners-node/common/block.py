@@ -1,5 +1,7 @@
 import datetime
 from hashlib import sha256
+import json
+import copy
 
 MAX_ENTRIES_AMOUNT = 5
 def isCryptographicPuzzleSolved(aBlock):
@@ -21,7 +23,23 @@ class Block:
             
     def hash(self):
         return int(sha256(repr(self.header).encode('utf-8') + repr(self.entries).encode('utf-8')).hexdigest(), 16)
-        
+    
+    @staticmethod
+    def deserialize(bytes_recv):
+        parsed = json.loads(bytes_recv.decode('utf-8'))
+        block = Block(parsed['entries'])
+        block.header['prev_hash'] = parsed['header']['prev_hash']
+        block.header['nonce'] = parsed['header']['nonce']
+        block.header['timestamp'] = datetime.datetime.fromisoformat(parsed['header']['timestamp'])
+        block.header['entries_amount'] = parsed['header']['entries_amount']
+        block.header['difficulty'] = parsed['header']['difficulty']
+        return block
+
+    def serialize(self):
+        dictionary = copy.deepcopy(self.__dict__)
+        dictionary['header']['timestamp'] = dictionary['header']['timestamp'].isoformat()
+        return json.dumps(dictionary).encode('utf-8')
+
     def __str__(self):
         entries = ",".join(self.entries)
         return """
@@ -39,27 +57,3 @@ class Block:
             {6}
         ]
         """.format(hex(self.hash()), hex(self.header['prev_hash']), self.header['nonce'], self.header['timestamp'], self.header['entries_amount'], self.header['difficulty'], entries)
-    
-class Blockchain:
-    def __init__(self):
-        self.blocks = []
-        self.last_block_hash = 0
-        
-    def addBlock(self, newBlock):
-        if (self.isBlockValid(newBlock)):
-            self.blocks.append(newBlock)
-            self.last_block_hash = newBlock.hash()
-            return True
-        return False
-    
-    def isBlockValid(self, block):
-        return block.header['prev_hash'] == self.last_block_hash and isCryptographicPuzzleSolved(block)
-    
-    def getLastHash(self):
-        return self.last_block_hash
-    
-    def printBlockChain(self):
-        for block in self.blocks:
-            print ('-----------------------------------------------------------------------------')
-            print (block)
-            print ('-----------------------------------------------------------------------------')

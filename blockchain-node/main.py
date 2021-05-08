@@ -6,10 +6,8 @@ import logging
 from common.server import Server
 import configparser
 
-from common.miner import Miner
-from multiprocessing import Process, Queue
-
-NUMER_OF_MINERS = 5
+from common.blockchain import Blockchain, Block
+import socket
 
 def parse_config_params():
 	""" Parse env variables to find program config params
@@ -49,25 +47,53 @@ def main():
 	initialize_log()
 	config_params = parse_config_params()
 
-	pool_queues = []
-	miners_procs = []
-	for id in range(NUMER_OF_MINERS):
-		q = Queue()
-		pool_queues.append(q)
-		miners_procs.append(Process(target=miner_init, args=(id, q,)))
-
-	for w in miners_procs:
-		w.start()
+	blockchain = Blockchain()
 
 	# Initialize server and start server loop
-	server = Server(config_params["port"], config_params["listen_backlog"])
-	server.run(pool_queues, miners_procs)
+	# server = Server(config_params["port"], config_params["listen_backlog"])
+	# server.run(blockchain)
+
+	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	server_socket.bind(('', config_params["port"]))
+	server_socket.listen(config_params["listen_backlog"])
+
+	while True:
+		client_sock = __accept_new_connection(server_socket)
+		block_received = __handle_client_connection(client_sock)
+
+		result = blockchain.addBlock(block_received)
+		logging.info(f"Block {block_received}. Result: {result}")
+		blockchain.printBlockChain()
+
+def __handle_client_connection(client_sock):
+	"""
+	Read message from a specific client socket and closes the socket
+
+	If a problem arises in the communication with the client, the
+	client socket will also be closed
+	"""
+	try:
+		msg = client_sock.recv(1024).rstrip()
+		logging.info('Message {}'.format(msg))
+		newBlock = Block.deserialize(msg)
+		logging.info(
+			'Message received {}. Block Info: {}'
+				.format(client_sock.getpeername(), newBlock))
+		# client_sock.send("Your Message has been received: {}\n".format(msg).encode('utf-8'))
+	except OSError:
+		logging.info("Error while reading socket {}".format(client_sock))
+	finally:
+		client_sock.close()
+	
+	return newBlock
 
 
-def miner_init(id, blocks_queue):
-	miner = Miner(id, blocks_queue)
-	miner.run()
-
+def __accept_new_connection(server_socket):
+	# Connection arrived
+	logging.info("Proceed to accept new connections")
+	c, addr = server_socket.accept()
+	logging.info('Got connection from {}'.format(addr))
+	return c
 
 def initialize_log():
 	"""

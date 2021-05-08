@@ -16,7 +16,8 @@ build: deps
 .PHONY: build
 
 docker-image:
-	docker build -f ./server/Dockerfile -t "server:latest" .
+	docker build -f ./miners-node/Dockerfile -t "miners-node:latest" .
+	docker build -f ./blockchain-node/Dockerfile -t "blockchain-node:latest" .
 	docker build -f ./client/Dockerfile -t "client:latest" .
 .PHONY: docker-image
 

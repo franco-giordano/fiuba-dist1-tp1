@@ -9,7 +9,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
-    def run(self, pool_queues, miners_procs):
+    def run(self, blockchain):
         """
         Dummy Server loop
 

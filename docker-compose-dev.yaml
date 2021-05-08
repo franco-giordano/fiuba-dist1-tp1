@@ -1,11 +1,11 @@
 version: '3'
 services:
-  server:
-    container_name: server
-    image: server:latest
+  miners-node:
+    container_name: miners-node
+    image: miners-node:latest
     entrypoint: python3 /main.py
     volumes:
-      - ./server:/server
+      - ./miners-node:/miners-node
     environment:
       - PYTHONUNBUFFERED=1
       # - SERVER_IP=server
@@ -13,6 +13,21 @@ services:
       # - SERVER_LISTEN_BACKLOG=5
     networks:
       - testing_net
+
+  blockchain-node:
+    container_name: blockchain-node
+    image: blockchain-node:latest
+    entrypoint: python3 /main.py
+    volumes:
+      - ./blockchain-node:/blockchain-node
+    environment:
+      - PYTHONUNBUFFERED=1
+      # - SERVER_IP=server
+      # - SERVER_PORT=12345
+      # - SERVER_LISTEN_BACKLOG=5
+    networks:
+      - testing_net
+
 
   client1:
     container_name: client1
@@ -28,23 +43,23 @@ services:
     networks:
       - testing_net
     depends_on:
-      - server
+      - miners-node
 
-  client2:
-    container_name: client2
-    image: client:latest
-    entrypoint: /client
-    volumes:
-      - ./client:/client-cfg
-    environment:
-      - CLI_ID=2
-      # - CLI_SERVER_ADDRESS=server:12345
-      # - CLI_LOOP_LAPSE=1m2s
-      # - CLI_LOOP_PERIOD=10s
-    networks:
-      - testing_net
-    depends_on:
-      - server
+  # client2:
+  #   container_name: client2
+  #   image: client:latest
+  #   entrypoint: /client
+  #   volumes:
+  #     - ./client:/client-cfg
+  #   environment:
+  #     - CLI_ID=2
+  #     # - CLI_SERVER_ADDRESS=server:12345
+  #     # - CLI_LOOP_LAPSE=1m2s
+  #     # - CLI_LOOP_PERIOD=10s
+  #   networks:
+  #     - testing_net
+  #   depends_on:
+  #     - server
 
 networks:
   testing_net:
