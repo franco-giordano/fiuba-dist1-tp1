@@ -1,0 +1,4 @@
+id: 1
+server_address: server:12345
+loop_lapse: 1m2s
+loop_period: 10s
