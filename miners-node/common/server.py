@@ -8,6 +8,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self.last_hash = 0
 
     def run(self, pool_queues, miners_procs):
         """
@@ -34,7 +35,7 @@ class Server:
         """
         newBlock = Block(["{{'user_id': 'user_{0}', 'user_data': 'data_{0}'}}".format(1)])
         newBlock.header['difficulty'] = 1
-        newBlock.header['prev_hash'] = 0
+        newBlock.header['prev_hash'] = self.last_hash
         try:
             msg = client_sock.recv(1024).rstrip()
             logging.info(

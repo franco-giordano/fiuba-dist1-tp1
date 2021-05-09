@@ -75,9 +75,14 @@ class Blockchain:
     
     def getLastHash(self):
         return self.last_block_hash
+
+    def __str__(self):
+        res = '=============================================================================\n'
+        for block in self.blocks:
+            res += '--VVVVVVVVVVVVVVVVVVVVVVVV---------------------------------------------------\n'
+            res += str(block) + '\n'
+        res += '=============================================================================\n'
+        return res
     
     def printBlockChain(self):
-        for block in self.blocks:
-            print ('-----------------------------------------------------------------------------')
-            print (block)
-            print ('-----------------------------------------------------------------------------')
+        print(self)

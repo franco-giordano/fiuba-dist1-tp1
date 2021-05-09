@@ -10,7 +10,7 @@ class Miner:
     def run(self, blockchain_socket):
         while True:
             data = self.blocks_queue.get()
-            logging.info(f"MINER {self.id}: received {data}")
+            logging.info(f"MINER {self.id}: received block with prev_hash {data.header['prev_hash']}")
             self.mine(data, blockchain_socket)
             logging.info(f"MINER {self.id}: mined {data}")
 
@@ -22,10 +22,6 @@ class Miner:
             block.header['nonce'] += 1
             block.header['timestamp'] = datetime.datetime.now()
         logging.info(f"MINER {self.id}: mined {block}")
-        block.serialize()
-        logging.info(f"MINER {self.id}: serialized once {block}")
-        block.serialize()
-        logging.info(f"MINER {self.id}: serialized twice {block}")
 
         blockchain_socket.send(block.serialize())
         logging.info(f"MINER {self.id}: sent {block.serialize()}")

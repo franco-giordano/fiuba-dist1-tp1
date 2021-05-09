@@ -9,6 +9,7 @@ import configparser
 import socket
 from common.miner import Miner
 from multiprocessing import Process, Queue
+from threading import Thread
 
 NUMER_OF_MINERS = 5
 
@@ -64,16 +65,30 @@ def main():
 
 	# Initialize server and start server loop
 	server = Server(config_params["port"], config_params["listen_backlog"])
+
+	new_blocks_listener = Thread(target = blocks_listener_init, args = (server, config_params, ))
+	new_blocks_listener.start()
+	
 	server.run(pool_queues, miners_procs)
 
 
 def miner_init(id, blocks_queue, config_params):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.connect(('blockchain-node', 20000))
+	sock.send('1'.encode()) # tell blockchain im a block uploader
 	logging.info(f"MINER {id}: connected to blockchain @ {config_params['blockchain_ip']}:{config_params['blockchain_port']}")
 	miner = Miner(id, blocks_queue)
 	miner.run(sock)
 
+def blocks_listener_init(req_server, config_params):
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	sock.connect(('blockchain-node', 20000))
+	sock.send('0'.encode()) # tell blockchain im a block listener
+	logging.info(f"LISTENER: connected to blockchain @ {config_params['blockchain_ip']}:{config_params['blockchain_port']}")
+	while True:
+		last_hash = sock.recv(256).rstrip().decode()
+		logging.info(f"LISTENER: new hash {last_hash}")
+		req_server.last_hash = int(last_hash)
 
 def initialize_log():
 	"""
