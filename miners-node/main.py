@@ -3,7 +3,7 @@
 import os
 import time
 import logging
-from common.server import Server
+from common.chunk_api_server import ChunkAPIServer
 import configparser
 
 import socket
@@ -64,12 +64,12 @@ def main():
 		w.start()
 
 	# Initialize server and start server loop
-	server = Server(config_params["port"], config_params["listen_backlog"])
+	chunks_server = ChunkAPIServer(config_params["port"], config_params["listen_backlog"], pool_queues)
 
-	new_blocks_listener = Thread(target = blocks_listener_init, args = (server, config_params, ))
+	new_blocks_listener = Thread(target = blocks_listener_init, args = (chunks_server, config_params))
 	new_blocks_listener.start()
 	
-	server.run(pool_queues, miners_procs)
+	chunks_server.run()
 
 
 def miner_init(id, blocks_queue, config_params):
