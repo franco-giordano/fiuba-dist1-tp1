@@ -15,6 +15,8 @@ class ChunkAPIServer(Server):
         self.pool_queues = pool_queues
         self.pending_chunks_queue = queue.Queue(MAX_PENDING_CHUNKS)
         self.dispatch_timer = None
+        self.miners_are_busy = False
+        self.failed_to_dispatch_queue = False
 
     def handle_client_connection(self, client_sock):
         id = threading.get_ident()
@@ -40,36 +42,82 @@ class ChunkAPIServer(Server):
             client_sock.close()
 
     def _add_to_chunk_queue(self, chunk, id):
+        added = False
+
         try:
             self.pending_chunks_queue.put_nowait(chunk)
+            added = True
+        except queue.Full:
+            added = False
+
+        if added:
             logging.info(f"THREAD {id}: Chunk {chunk} succesfully added to queue.")
+            self._destroy_dispatch_timer(id)
+            self._wait_or_force_dispatch(id)
+        else:
+            logging.error(f"THREAD {id}: Chunk queue already full! Discarding chunk: {chunk}")
 
-            if self.dispatch_timer:
-                self.dispatch_timer.cancel()
-                logging.info(f"THREAD {id}: Cancelled previous dispatch timer.")
+        return added
 
-            self.dispatch_timer = threading.Timer(DISPATCH_TIMEOUT_SECONDS, self._dispatch_block)
+    def _wait_or_force_dispatch(self, id):
+        if self.pending_chunks_queue.full():
+            logging.info(f"THREAD {id}: Queue is now full, forcing dispatch")
+            self._build_and_dispatch_block()
+        else:
+            self.dispatch_timer = threading.Timer(DISPATCH_TIMEOUT_SECONDS, self._build_and_dispatch_block)
             self.dispatch_timer.start()
             logging.info(f"THREAD {id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
-            return True
-        except queue.Full:
-            logging.error(f"THREAD {id}: Chunk queue already full! Discarding chunk: {chunk}")
-            return False
 
-    def _dispatch_block(self):
+    def new_last_hash(self, last_hash):
+        if not self.miners_are_busy:
+            logging.warning(f"!!!!!!!!!!!!!!!!!!!!!!! WHAT?")
+        
+        self.miners_are_busy = False
+        self.last_hash = last_hash
+
+        if self.failed_to_dispatch_queue:
+            logging.info(f"Detected previous failed dispatch attempt. Forcing one now...")
+            self.failed_to_dispatch_queue = False
+            self._build_and_dispatch_block()
+
+    def _build_and_dispatch_block(self):
+        self._destroy_dispatch_timer()
+
         logging.info(f"Block building triggered, will process {self.pending_chunks_queue.qsize()} chunks.")
 
+        if self.miners_are_busy or self.failed_to_dispatch_queue:
+            logging.warning(f"Failed to dispatch: Miners are busy or new block is being added, cant dispatch now. Waiting for newer hash...")
+            self.failed_to_dispatch_queue = True
+        else:
+            new_block = self._enqueue_and_build_block()
+            self._dispatch_block(new_block)
+
+    def _enqueue_and_build_block(self):
         entries = []
         while not self.pending_chunks_queue.empty():
             entries.append(self.pending_chunks_queue.get_nowait())
 
         new_block = Block(entries)
-        new_block.header['difficulty'] = 1
-        new_block.header['prev_hash'] = self.last_hash
+        return new_block
+    
+    def _dispatch_block(self, block):
+        if self.miners_are_busy:
+            logging.warning(f"!!!!!!!!!!!!!!!!!! Trying to dispatch while miners are busy! Something went wrong!")
 
-        logging.info(f"Block built with prev_hash {new_block.header['prev_hash']}. Dispatching...")
+        block.header['difficulty'] = 1
+        block.header['prev_hash'] = self.last_hash
 
+        logging.info(f"Block built with prev_hash {block.header['prev_hash']}. Dispatching...")
+
+        self.miners_are_busy = True
         for p in self.pool_queues:
-            p.put(new_block)
+            p.put(block)
 
-        logging.info(f"Success dispatching block with prev_hash {new_block.header['prev_hash']}.")
+        logging.info(f"Success dispatching block with prev_hash {block.header['prev_hash']}.")
+    
+    def _destroy_dispatch_timer(self, id=None):
+        if self.dispatch_timer:
+            self.dispatch_timer.cancel()
+            logging.info(f"THREAD {id}: Cancelled previous dispatch timer.")
+
+        self.dispatch_timer = None

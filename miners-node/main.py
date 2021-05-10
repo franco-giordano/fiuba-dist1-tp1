@@ -80,7 +80,7 @@ def miner_init(id, blocks_queue, config_params):
 	miner = Miner(id, blocks_queue)
 	miner.run(sock)
 
-def blocks_listener_init(req_server, config_params):
+def blocks_listener_init(chunks_server, config_params):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.connect(('blockchain-node', 20000))
 	sock.send('0'.encode()) # tell blockchain im a block listener
@@ -88,7 +88,7 @@ def blocks_listener_init(req_server, config_params):
 	while True:
 		last_hash = sock.recv(256).rstrip().decode()
 		logging.info(f"LISTENER: new hash {last_hash}")
-		req_server.last_hash = int(last_hash)
+		chunks_server.new_last_hash(int(last_hash))
 
 def initialize_log():
 	"""

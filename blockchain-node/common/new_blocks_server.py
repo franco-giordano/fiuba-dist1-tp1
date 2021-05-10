@@ -34,10 +34,10 @@ class NewBlocksServer(Server):
             #     client_sock.close()
             
             addition_success = self.blockchain.addBlock(new_block)
-            logging.info(f"Thread {id}: Attempted to add block {new_block}. Result: {addition_success}")
-            self.blockchain.printBlockChain()
+            logging.info(f"Thread {id}: Attempted to add block with hash {new_block.hash()}. Result: {addition_success}")
 
             if addition_success:
+                self.blockchain.printBlockChain()
                 self._announce_new_block()
 
     def _handle_block_listener(self, client_sock):
