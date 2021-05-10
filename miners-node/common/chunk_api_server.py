@@ -5,6 +5,7 @@ import threading
 from common.server import Server
 
 MAX_PENDING_CHUNKS = 5
+DISPATCH_TIMEOUT_SECONDS = 30
 
 class ChunkAPIServer(Server):
     def __init__(self, port, listen_backlog, pool_queues):
@@ -13,6 +14,7 @@ class ChunkAPIServer(Server):
         self.last_hash = 0
         self.pool_queues = pool_queues
         self.pending_chunks_queue = queue.Queue(MAX_PENDING_CHUNKS)
+        self.dispatch_timer = None
 
     def handle_client_connection(self, client_sock):
         id = threading.get_ident()
@@ -41,8 +43,33 @@ class ChunkAPIServer(Server):
         try:
             self.pending_chunks_queue.put_nowait(chunk)
             logging.info(f"THREAD {id}: Chunk {chunk} succesfully added to queue.")
+
+            if self.dispatch_timer:
+                self.dispatch_timer.cancel()
+                logging.info(f"THREAD {id}: Cancelled previous dispatch timer.")
+
+            self.dispatch_timer = threading.Timer(DISPATCH_TIMEOUT_SECONDS, self._dispatch_block)
+            self.dispatch_timer.start()
+            logging.info(f"THREAD {id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
             return True
         except queue.Full:
             logging.error(f"THREAD {id}: Chunk queue already full! Discarding chunk: {chunk}")
             return False
 
+    def _dispatch_block(self):
+        logging.info(f"Block building triggered, will process {self.pending_chunks_queue.qsize()} chunks.")
+
+        entries = []
+        while not self.pending_chunks_queue.empty():
+            entries.append(self.pending_chunks_queue.get_nowait())
+
+        new_block = Block(entries)
+        new_block.header['difficulty'] = 1
+        new_block.header['prev_hash'] = self.last_hash
+
+        logging.info(f"Block built with prev_hash {new_block.header['prev_hash']}. Dispatching...")
+
+        for p in self.pool_queues:
+            p.put(new_block)
+
+        logging.info(f"Success dispatching block with prev_hash {new_block.header['prev_hash']}.")
