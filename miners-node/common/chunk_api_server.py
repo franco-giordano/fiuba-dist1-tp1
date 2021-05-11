@@ -16,6 +16,7 @@ class ChunkAPIServer(Server):
         self.pool_queues = pool_queues
         self.pending_chunks_queue = queue.Queue(MAX_PENDING_CHUNKS)
         self.dispatch_timer = None
+        self.timer_lock = threading.Lock()
         self.miners_are_busy = False
         self.failed_to_dispatch_queue = False
 
@@ -60,9 +61,10 @@ class ChunkAPIServer(Server):
             logging.info(f"THREAD {t_id}: Queue is now full, forcing dispatch")
             self._build_and_dispatch_block()
         else:
-            self.dispatch_timer = threading.Timer(DISPATCH_TIMEOUT_SECONDS, self._build_and_dispatch_block)
-            self.dispatch_timer.start()
-            logging.info(f"THREAD {t_id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
+            with self.timer_lock as lck:
+                self.dispatch_timer = threading.Timer(DISPATCH_TIMEOUT_SECONDS, self._build_and_dispatch_block)
+                self.dispatch_timer.start()
+                logging.info(f"THREAD {t_id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
 
     def new_last_hash(self, last_hash):
         if not self.miners_are_busy:
@@ -111,9 +113,10 @@ class ChunkAPIServer(Server):
 
         logging.info(f"Success dispatching block with prev_hash {block.header['prev_hash']}.")
     
-    def _destroy_dispatch_timer(self, t_id=None):
-        if self.dispatch_timer:
-            self.dispatch_timer.cancel()
-            logging.info(f"THREAD {t_id}: Cancelled previous dispatch timer.")
+    def _destroy_dispatch_timer(self, t_id):
+        with self.timer_lock as lck:
+            if self.dispatch_timer:
+                self.dispatch_timer.cancel()
+                logging.info(f"THREAD {t_id}: Cancelled previous dispatch timer.")
 
-        self.dispatch_timer = None
+            self.dispatch_timer = None
