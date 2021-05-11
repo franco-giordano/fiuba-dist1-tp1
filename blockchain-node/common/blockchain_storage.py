@@ -2,6 +2,7 @@ import pickle
 import os
 import logging
 import threading
+import datetime
 
 class BlockchainStorage:
     def __init__(self, root_dir, locks_dir, locks_dir_lock):
@@ -65,6 +66,23 @@ class BlockchainStorage:
         
         return block
 
+    def get_by_minute(self, iso_minutes):
+        iso_hour = datetime.datetime.fromisoformat(iso_minutes).isoformat(timespec='hours')
+        path = self._generate_hourly_path_from_iso(iso_hour)
+        blocks = []
+        try:
+            file_lock = self._get_hourly_lock_from_iso(iso_hour)
+            with file_lock as lck, open(path, "rb") as f:
+                by_minute = pickle.load(f)
+                logging.info(f"BLOCKCHAIN STORAGE: #### Retrieved all blocks {by_minute}")
+
+                blocks = by_minute.get(iso_minutes, [])
+                logging.info(f"BLOCKCHAIN STORAGE: Retrieved blocks {blocks} for minute {iso_minutes} @ {path}")
+        except (OSError, KeyError) as e:
+            logging.warning(f"BLOCKCHAIN STORAGE: no blocks found for time query {iso_minutes}. Error {e}")
+        
+        return blocks
+
     def _get_suffix_lock(self, block_hash):
         suffix = self._generate_suffix_only(block_hash)
         lock = None
@@ -76,10 +94,13 @@ class BlockchainStorage:
 
     def _get_hourly_lock(self, block):
         hour = self._generate_hourly_only(block)
+        return self._get_hourly_lock_from_iso(hour)
+
+    def _get_hourly_lock_from_iso(self, iso_hour):
         lock = None
         
         with self.locks_dir_lock:
-            lock = self.locks_dir['by-hour'][hour]
+            lock = self.locks_dir['by-hour'][iso_hour]
 
         return lock
 
@@ -115,6 +136,9 @@ class BlockchainStorage:
     def _generate_block_hourly_path(self, block):
         hour = self._generate_hourly_only(block)
         return f"{self.root_dir}/by-hour/{hour}"
+
+    def _generate_hourly_path_from_iso(self, iso_hour):
+        return f"{self.root_dir}/by-hour/{iso_hour}"
     
     def _generate_suffix_only(self, block_hash):
         return str(block_hash)[-self.SUFFIX_LEN:]

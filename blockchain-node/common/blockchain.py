@@ -41,9 +41,12 @@ class Block:
         return block
 
     def serialize(self):
+        return self.serialize_str().encode('utf-8')
+
+    def serialize_str(self):
         dictionary = copy.deepcopy(self.__dict__)
         dictionary['header']['timestamp'] = dictionary['header']['timestamp'].isoformat()
-        return json.dumps(dictionary).encode('utf-8')
+        return json.dumps(dictionary)
 
     def __str__(self):
         entries = ",".join(self.entries)
