@@ -19,11 +19,9 @@ class ChunkAPIServer(Server):
         self.miners_are_busy = False
         self.failed_to_dispatch_queue = False
 
+    # In new thread
     def handle_client_connection(self, client_sock):
         t_id = threading.get_ident()
-        # newBlock = Block(["{{'user_id': 'user_{0}', 'user_data': 'data_{0}'}}".format(1)])
-        # newBlock.header['difficulty'] = 1
-        # newBlock.header['prev_hash'] = self.last_hash
         try:
             chunk = client_sock.recv(1024).rstrip().decode()
             logging.info(f'THREAD {t_id}: Chunk received from connection {client_sock.getpeername()}. Chunk: {chunk}')
