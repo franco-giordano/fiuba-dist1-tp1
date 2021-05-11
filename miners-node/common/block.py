@@ -3,7 +3,8 @@ from hashlib import sha256
 import json
 import copy
 
-MAX_ENTRIES_AMOUNT = 5
+MAX_ENTRIES_AMOUNT = 256
+
 def isCryptographicPuzzleSolved(aBlock):
     return aBlock.hash() < (2**256) / aBlock.header['difficulty'] - 1
     

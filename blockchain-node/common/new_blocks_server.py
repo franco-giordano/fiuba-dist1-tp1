@@ -3,6 +3,8 @@ import threading
 import logging
 from common.blockchain import Block
 
+MAX_BLOCKS_SIZE = 65536 * 257
+
 def locked_apply(lock, func, args=()):
     with lock as l:
         return func(*args)
@@ -30,7 +32,7 @@ class NewBlocksServer(Server):
         logging.info(f"Registered {client_sock.getpeername()} as Uploader. Waiting for blocks...")
         while True:
             try:
-                msg = client_sock.recv(4096).rstrip()
+                msg = client_sock.recv(MAX_BLOCKS_SIZE).rstrip()
                 logging.info(f"BLOCKS THREAD {t_id}: Message {msg}")
                 new_block = Block.deserialize(msg)
                 logging.info(f"BLOCKS THREAD {t_id}: Message received {client_sock.getpeername()}. Block Hash: {new_block.hash()}")

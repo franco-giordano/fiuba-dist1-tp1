@@ -5,8 +5,9 @@ import threading
 from common.server import Server
 import copy
 
-MAX_PENDING_CHUNKS = 5
-DISPATCH_TIMEOUT_SECONDS = 30
+MAX_PENDING_CHUNKS = 256
+DISPATCH_TIMEOUT_SECONDS = 10
+MAX_CHUNK_SIZE = 65536
 
 class ChunkAPIServer(Server):
     def __init__(self, port, listen_backlog, pool_queues):
@@ -25,7 +26,14 @@ class ChunkAPIServer(Server):
     def handle_client_connection(self, client_sock):
         t_id = threading.get_ident()
         try:
-            chunk = client_sock.recv(1024).rstrip().decode()
+            chunk_b = client_sock.recv(MAX_CHUNK_SIZE + 5).rstrip()
+
+            if len(chunk_b) > MAX_CHUNK_SIZE:
+                client_sock.send(f"CHUNK_TOO_BIG\n".encode())
+                logging.info(f'THREAD {t_id}: Received and responded CHUNK_TOO_BIG to {client_sock.getpeername()}. Chunk Length: {len(chunk_b)}')
+                return
+
+            chunk = chunk_b.decode()
             logging.info(f'THREAD {t_id}: Chunk received from connection {client_sock.getpeername()}. Chunk: {chunk}')
             success = self._add_to_chunk_queue(chunk, t_id)
             if success:

@@ -5,7 +5,7 @@ import copy
 from common.blockchain_storage import BlockchainStorage
 import logging
 
-MAX_ENTRIES_AMOUNT = 5
+MAX_ENTRIES_AMOUNT = 256
 MAX_BLOCKS_PER_DIFF_UPDATE = 3
 TARGET_TIME_IN_SECONDS = 12
 
