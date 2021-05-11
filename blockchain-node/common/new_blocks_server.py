@@ -53,7 +53,7 @@ class NewBlocksServer(Server):
 
     def _announce_new_block(self):
         last_hash = locked_apply(self.blockchain_lock, self.blockchain.getLastHash)
-        last_hash_b = str(last_hash.encode()
+        last_hash_b = str(last_hash).encode()
 
         with self.listeners_lock as lck:
             logging.info(f"Starting to announce new block {last_hash_b} to {len(self.block_listener_socks)} listeners")

@@ -113,7 +113,7 @@ class ChunkAPIServer(Server):
 
         logging.info(f"Success dispatching block with prev_hash {block.header['prev_hash']}.")
     
-    def _destroy_dispatch_timer(self, t_id):
+    def _destroy_dispatch_timer(self, t_id=None):
         with self.timer_lock as lck:
             if self.dispatch_timer:
                 self.dispatch_timer.cancel()
