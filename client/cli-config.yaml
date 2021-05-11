@@ -1,4 +1,4 @@
 id: 1
 server_address: miners-node:10000
-loop_lapse: 1m2s
+loop_lapse: 10m2s
 loop_period: 10s

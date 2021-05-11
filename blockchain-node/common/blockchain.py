@@ -2,6 +2,8 @@ import datetime
 from hashlib import sha256
 import json
 import copy
+from common.blockchain_storage import BlockchainStorage
+import logging
 
 MAX_ENTRIES_AMOUNT = 5
 def isCryptographicPuzzleSolved(aBlock):
@@ -59,14 +61,18 @@ class Block:
         """.format(hex(self.hash()), hex(self.header['prev_hash']), self.header['nonce'], self.header['timestamp'], self.header['entries_amount'], self.header['difficulty'], entries)
 
 class Blockchain:
-    def __init__(self):
+    def __init__(self, root_dir):
         self.blocks = []
         self.last_block_hash = 0
+        self.storage = BlockchainStorage(root_dir)
         
     def addBlock(self, newBlock):
         if (self.isBlockValid(newBlock)):
             self.blocks.append(newBlock)
             self.last_block_hash = newBlock.hash()
+            self.storage.store_block(newBlock)
+            # got_block = self.storage.get_by_hash(newBlock.hash())
+            # logging.info(f"######## THE BLOCK STORED IS {got_block}")
             return True
         return False
     

@@ -3,6 +3,7 @@ from common.block import Block
 import queue
 import threading
 from common.server import Server
+import copy
 
 MAX_PENDING_CHUNKS = 5
 DISPATCH_TIMEOUT_SECONDS = 30
@@ -19,29 +20,26 @@ class ChunkAPIServer(Server):
         self.failed_to_dispatch_queue = False
 
     def handle_client_connection(self, client_sock):
-        id = threading.get_ident()
+        t_id = threading.get_ident()
         # newBlock = Block(["{{'user_id': 'user_{0}', 'user_data': 'data_{0}'}}".format(1)])
         # newBlock.header['difficulty'] = 1
         # newBlock.header['prev_hash'] = self.last_hash
         try:
             chunk = client_sock.recv(1024).rstrip().decode()
-            logging.info(f'THREAD {id}: Chunk received from connection {client_sock.getpeername()}. Chunk: {chunk}')
-            success = self._add_to_chunk_queue(chunk, id)
+            logging.info(f'THREAD {t_id}: Chunk received from connection {client_sock.getpeername()}. Chunk: {chunk}')
+            success = self._add_to_chunk_queue(chunk, t_id)
             if success:
-                client_sock.send(f"CHUNK_ACCEPTED {chunk}".encode())
-                logging.info(f'THREAD {id}: Responded CHUNK_ACCEPTED to {client_sock.getpeername()}')
+                client_sock.send(f"CHUNK_ACCEPTED {chunk}\n".encode())
+                logging.info(f'THREAD {t_id}: Responded CHUNK_ACCEPTED to {client_sock.getpeername()}')
             else:
-                client_sock.send("CHUNK_DISCARDED".encode())
-                logging.info(f'THREAD {id}: Responded CHUNK_DISCARDED to {client_sock.getpeername()}')
-            # for p in pool_queues:
-            #     p.put(newBlock)
-            # client_sock.send("Your Message has been received: {}\n".format(msg).encode('utf-8'))
+                client_sock.send("CHUNK_DISCARDED\n".encode())
+                logging.info(f'THREAD {t_id}: Responded CHUNK_DISCARDED to {client_sock.getpeername()}')
         except OSError:
             logging.info("Error while reading socket {}".format(client_sock))
         finally:
             client_sock.close()
 
-    def _add_to_chunk_queue(self, chunk, id):
+    def _add_to_chunk_queue(self, chunk, t_id):
         added = False
 
         try:
@@ -51,22 +49,22 @@ class ChunkAPIServer(Server):
             added = False
 
         if added:
-            logging.info(f"THREAD {id}: Chunk {chunk} succesfully added to queue.")
-            self._destroy_dispatch_timer(id)
-            self._wait_or_force_dispatch(id)
+            logging.info(f"THREAD {t_id}: Chunk {chunk} succesfully added to queue.")
+            self._destroy_dispatch_timer(t_id)
+            self._wait_or_force_dispatch(t_id)
         else:
-            logging.error(f"THREAD {id}: Chunk queue already full! Discarding chunk: {chunk}")
+            logging.error(f"THREAD {t_id}: Chunk queue already full! Discarding chunk: {chunk}")
 
         return added
 
-    def _wait_or_force_dispatch(self, id):
+    def _wait_or_force_dispatch(self, t_id):
         if self.pending_chunks_queue.full():
-            logging.info(f"THREAD {id}: Queue is now full, forcing dispatch")
+            logging.info(f"THREAD {t_id}: Queue is now full, forcing dispatch")
             self._build_and_dispatch_block()
         else:
             self.dispatch_timer = threading.Timer(DISPATCH_TIMEOUT_SECONDS, self._build_and_dispatch_block)
             self.dispatch_timer.start()
-            logging.info(f"THREAD {id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
+            logging.info(f"THREAD {t_id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
 
     def new_last_hash(self, last_hash):
         if not self.miners_are_busy:
@@ -104,20 +102,20 @@ class ChunkAPIServer(Server):
         if self.miners_are_busy:
             logging.warning(f"!!!!!!!!!!!!!!!!!! Trying to dispatch while miners are busy! Something went wrong!")
 
-        block.header['difficulty'] = 1
+        block.header['difficulty'] = 1 # 1154890
         block.header['prev_hash'] = self.last_hash
 
         logging.info(f"Block built with prev_hash {block.header['prev_hash']}. Dispatching...")
 
         self.miners_are_busy = True
         for p in self.pool_queues:
-            p.put(block)
+            p.put(copy.deepcopy(block))
 
         logging.info(f"Success dispatching block with prev_hash {block.header['prev_hash']}.")
     
-    def _destroy_dispatch_timer(self, id=None):
+    def _destroy_dispatch_timer(self, t_id=None):
         if self.dispatch_timer:
             self.dispatch_timer.cancel()
-            logging.info(f"THREAD {id}: Cancelled previous dispatch timer.")
+            logging.info(f"THREAD {t_id}: Cancelled previous dispatch timer.")
 
         self.dispatch_timer = None

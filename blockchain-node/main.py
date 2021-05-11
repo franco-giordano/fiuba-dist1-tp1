@@ -6,8 +6,12 @@ import logging
 from common.server import Server
 import configparser
 
-from common.blockchain import Blockchain, Block
+from common.blockchain import Blockchain
 from common.new_blocks_server import NewBlocksServer
+from common.blockchain_storage import BlockchainStorage
+from common.queries_api_server import QueriesAPIServer
+
+import threading
 
 def parse_config_params():
 	""" Parse env variables to find program config params
@@ -25,8 +29,9 @@ def parse_config_params():
 
 	config_params = {}
 	try:
-		config_params["port"] = int(get_config_key("SERVER_PORT", ini_config))
-		config_params["listen_backlog"] = int(get_config_key("SERVER_LISTEN_BACKLOG", ini_config))
+		config_params["blocks_port"] = int(get_config_key("BLOCKS_SERVER_PORT", ini_config))
+		config_params["queries_port"] = int(get_config_key("QUERIES_SERVER_PORT", ini_config))
+		config_params["listen_backlog"] = int(get_config_key("SERVERS_LISTEN_BACKLOG", ini_config))
 	except ValueError as e:
 		raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
@@ -47,19 +52,20 @@ def main():
 	initialize_log()
 	config_params = parse_config_params()
 
-	blockchain = Blockchain()
+	blockchain = Blockchain('/blockchain-files')
 
+	query_api_thread = threading.Thread(target = query_api_init, args = (config_params, ))
+	query_api_thread.start()
 	# Initialize server and start server loop
-	new_blocks_server = NewBlocksServer(config_params["port"], config_params["listen_backlog"], blockchain)
+	new_blocks_server = NewBlocksServer(config_params["blocks_port"], config_params["listen_backlog"], blockchain)
 	new_blocks_server.run()
 
-	# while True:
-	# 	client_sock = __accept_new_connection(server_socket)
-	# 	block_received = __handle_client_connection(client_sock)
+	query_api_thread.join()
 
-	# 	result = blockchain.addBlock(block_received)
-	# 	logging.info(f"Block {block_received}. Result: {result}")
-	# 	blockchain.printBlockChain()
+def query_api_init(config_params):
+	blockchain_storage = BlockchainStorage('/blockchain-files')
+	query_api = QueriesAPIServer(config_params["queries_port"], config_params["listen_backlog"], blockchain_storage)
+	query_api.run()
 
 def initialize_log():
 	"""

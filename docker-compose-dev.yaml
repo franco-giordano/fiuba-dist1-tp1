@@ -20,6 +20,7 @@ services:
     entrypoint: python3 /main.py
     volumes:
       - ./blockchain-node:/blockchain-node
+      - ./blockchain-files:/blockchain-files
     environment:
       - PYTHONUNBUFFERED=1
       # - SERVER_IP=server
