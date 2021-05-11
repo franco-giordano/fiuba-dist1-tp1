@@ -45,6 +45,9 @@ class NewBlocksServer(Server):
             if addition_success:
                 locked_apply(self.blockchain_lock, self.blockchain.printBlockChain)
                 self._announce_new_block()
+                client_sock.send(b'BLOCK_ACCEPTED')
+            else:
+                client_sock.send(b'BLOCK_REJECTED')
 
     def _handle_block_listener(self, client_sock):
         with self.listeners_lock as lck:

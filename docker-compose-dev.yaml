@@ -6,6 +6,7 @@ services:
     entrypoint: python3 /main.py
     volumes:
       - ./miners-node:/miners-node
+      - ./stats-files:/stats-files
     environment:
       - PYTHONUNBUFFERED=1
       # - SERVER_IP=server
