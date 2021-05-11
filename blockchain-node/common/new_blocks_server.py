@@ -27,7 +27,7 @@ class NewBlocksServer(Server):
                 msg = client_sock.recv(4096).rstrip()
                 logging.info(f"BLOCKS THREAD {t_id}: Message {msg}")
                 new_block = Block.deserialize(msg)
-                logging.info(f"BLOCKS THREAD {t_id}: Message received {client_sock.getpeername()}. Block Info: {new_block}")
+                logging.info(f"BLOCKS THREAD {t_id}: Message received {client_sock.getpeername()}. Block Hash: {new_block.hash()}")
             except OSError:
                 logging.info(f"BLOCKS THREAD {t_id}: Error while reading socket {client_sock}")
             # finally:

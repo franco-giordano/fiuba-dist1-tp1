@@ -6,6 +6,7 @@ class Miner:
     def __init__(self, id, blocks_queue):
         self.id = id
         self.blocks_queue = blocks_queue
+        self.STARTING_NONCE = self.id * 10000000
 
     def run(self, blockchain_socket):
         while True:
@@ -17,6 +18,7 @@ class Miner:
 
     def mine(self, block, blockchain_socket):
         # block.header['prev_hash'] = prev_hash
+        block.header['nonce'] += self.STARTING_NONCE
         block.header['timestamp'] = datetime.datetime.now()
         while not isCryptographicPuzzleSolved(block):
             block.header['nonce'] += 1
