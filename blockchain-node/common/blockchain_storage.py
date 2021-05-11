@@ -29,16 +29,16 @@ class BlockchainStorage:
     def get_by_hash(self, block_hash):
         path = self._generate_block_suffix_path(block_hash)
         block = None
-        file_lock = self._get_suffix_lock(block_hash)
         try:
+            file_lock = self._get_suffix_lock(block_hash)
             with file_lock as lck, open(path, "rb") as f:
                 blocks = pickle.load(f)
                 logging.info(f"BLOCKCHAIN STORAGE: #### Retrieved all blocks {blocks}")
 
                 block = blocks.get(block_hash)
                 logging.info(f"BLOCKCHAIN STORAGE: Retrieved block {block} @ {path}")
-        except OSError:
-            logging.warning(f"BLOCKCHAIN STORAGE: block hash not found {block_hash}")
+        except (OSError, KeyError) as e:
+            logging.warning(f"BLOCKCHAIN STORAGE: block hash not found {block_hash}. Error {e}")
         
         return block
 
