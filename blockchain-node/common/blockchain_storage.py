@@ -11,19 +11,42 @@ class BlockchainStorage:
         self.locks_dir_lock = locks_dir_lock
     
     def store_block(self, block):
+        self._store_by_suffix(block)
+        self._store_by_hour(block)
+        
+    def _store_by_suffix(self, block):
         block_hash = block.hash()
-        path = self._generate_block_suffix_path(block_hash)
-        self._create_file_if_not_present(path, block_hash)
+        sfx_path = self._generate_block_suffix_path(block_hash)
 
+        self._create_sfx_file_if_not_present(sfx_path, block_hash)
         file_lock = self._get_suffix_lock(block_hash)
-        with file_lock as lck, open(path, "rb+") as f:
+        with file_lock as lck, open(sfx_path, "rb+") as f:
             blocks = pickle.load(f)
-            logging.info(f"BLOCKCHAIN STORAGE: Unpickled @ {path} blocks {blocks}")
+            logging.info(f"BLOCKCHAIN STORAGE: Unpickled @ {sfx_path} blocks {blocks}")
             blocks[block_hash] = block
             f.seek(0)
             pickle.dump(blocks, f)
 
-        logging.info(f"BLOCKCHAIN STORAGE: Stored block {block_hash}")
+        logging.info(f"BLOCKCHAIN STORAGE: Stored suffixed block {block_hash} @ {sfx_path}")
+
+    def _store_by_hour(self, block):
+        minute = self._generate_minutes_only(block)
+        hr_path = self._generate_block_hourly_path(block)
+        self._create_hrly_file_if_not_present(hr_path, block)
+        
+        file_lock = self._get_hourly_lock(block)
+        with file_lock as lck, open(hr_path, "rb+") as f:
+            by_minute = pickle.load(f)
+            logging.info(f"BLOCKCHAIN STORAGE: Unpickled @ {hr_path} blocks by minute {by_minute}")
+
+            if minute not in by_minute:
+                by_minute[minute] = []
+
+            by_minute[minute].append(block)
+            f.seek(0)
+            pickle.dump(by_minute, f)
+
+        logging.info(f"BLOCKCHAIN STORAGE: Stored hourly block for minute {minute} @ {hr_path}")
 
 
     def get_by_hash(self, block_hash):
@@ -51,7 +74,16 @@ class BlockchainStorage:
 
         return lock
 
-    def _create_file_if_not_present(self, path, block_hash):
+    def _get_hourly_lock(self, block):
+        hour = self._generate_hourly_only(block)
+        lock = None
+        
+        with self.locks_dir_lock:
+            lock = self.locks_dir['by-hour'][hour]
+
+        return lock
+
+    def _create_sfx_file_if_not_present(self, path, block_hash):
         if not os.path.exists(path):
             logging.info(f"BLOCKCHAIN STORAGE: Creating new suffix file @ {path}")
 
@@ -63,9 +95,32 @@ class BlockchainStorage:
                 sfx = self._generate_suffix_only(block_hash)
                 self.locks_dir['by-suffix'][sfx] = threading.Lock()
 
+
+    def _create_hrly_file_if_not_present(self, path, block):
+        if not os.path.exists(path):
+            logging.info(f"BLOCKCHAIN STORAGE: Creating new hourly file @ {path}")
+
+            with open(path, 'wb') as f:
+                by_minute = {}
+                pickle.dump(by_minute, f)
+
+            with self.locks_dir_lock as lck:
+                hrly = self._generate_hourly_only(block)
+                self.locks_dir['by-hour'][hrly] = threading.Lock()
+
     def _generate_block_suffix_path(self, block_hash):
         suffix = self._generate_suffix_only(block_hash)
         return f"{self.root_dir}/by-suffix/{suffix}"
+
+    def _generate_block_hourly_path(self, block):
+        hour = self._generate_hourly_only(block)
+        return f"{self.root_dir}/by-hour/{hour}"
     
     def _generate_suffix_only(self, block_hash):
         return str(block_hash)[-self.SUFFIX_LEN:]
+
+    def _generate_hourly_only(self, block):
+        return block.get_datetime().isoformat(timespec='hours')
+
+    def _generate_minutes_only(self, block):
+        return block.get_datetime().isoformat(timespec='minutes')

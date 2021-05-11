@@ -26,6 +26,9 @@ class Block:
     def hash(self):
         return int(sha256(repr(self.header).encode('utf-8') + repr(self.entries).encode('utf-8')).hexdigest(), 16)
     
+    def get_datetime(self):
+        return self.header['timestamp']
+
     @staticmethod
     def deserialize(bytes_recv):
         parsed = json.loads(bytes_recv.decode('utf-8'))
