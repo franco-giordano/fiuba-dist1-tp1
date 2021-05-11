@@ -61,10 +61,10 @@ class Block:
         """.format(hex(self.hash()), hex(self.header['prev_hash']), self.header['nonce'], self.header['timestamp'], self.header['entries_amount'], self.header['difficulty'], entries)
 
 class Blockchain:
-    def __init__(self, root_dir):
+    def __init__(self, root_dir, locks_dir, locks_dir_lock):
         self.blocks = []
         self.last_block_hash = 0
-        self.storage = BlockchainStorage(root_dir)
+        self.storage = BlockchainStorage(root_dir, locks_dir, locks_dir_lock)
         
     def addBlock(self, newBlock):
         if (self.isBlockValid(newBlock)):

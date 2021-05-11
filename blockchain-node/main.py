@@ -32,6 +32,7 @@ def parse_config_params():
 		config_params["blocks_port"] = int(get_config_key("BLOCKS_SERVER_PORT", ini_config))
 		config_params["queries_port"] = int(get_config_key("QUERIES_SERVER_PORT", ini_config))
 		config_params["listen_backlog"] = int(get_config_key("SERVERS_LISTEN_BACKLOG", ini_config))
+		config_params['blockchain_root_dir'] = get_config_key("BLOCKCHAIN_ROOT_DIR", ini_config)
 	except ValueError as e:
 		raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
@@ -52,18 +53,37 @@ def main():
 	initialize_log()
 	config_params = parse_config_params()
 
-	blockchain = Blockchain('/blockchain-files')
+	suffix_files = os.listdir(f"{config_params['blockchain_root_dir']}/by-suffix")
+	hourly_files = os.listdir(f"{config_params['blockchain_root_dir']}/by-hour")
 
-	query_api_thread = threading.Thread(target = query_api_init, args = (config_params, ))
+	locks_dir = create_file_locks(suffix_files, hourly_files)
+	locks_dir_lock = threading.Lock()
+
+	query_api_thread = threading.Thread(target = query_api_init, args = (config_params, locks_dir, locks_dir_lock))
 	query_api_thread.start()
-	# Initialize server and start server loop
+
+	blockchain = Blockchain(config_params['blockchain_root_dir'], locks_dir, locks_dir_lock)
 	new_blocks_server = NewBlocksServer(config_params["blocks_port"], config_params["listen_backlog"], blockchain)
 	new_blocks_server.run()
 
 	query_api_thread.join()
 
-def query_api_init(config_params):
-	blockchain_storage = BlockchainStorage('/blockchain-files')
+def create_file_locks(suffix_files, hourly_files):
+	locks = {'by-suffix': {}, 'by-hour': {}}
+
+	for s in suffix_files:
+		locks['by-suffix'][s] = threading.Lock()
+
+	for h in hourly_files:
+		locks['by-hour'][h] = threading.Lock()
+
+	logging.info(f'Created file locks for {len(suffix_files) + len(hourly_files)} files')
+	
+	return locks
+
+# In new thread
+def query_api_init(config_params, locks_dir, locks_dir_lock):
+	blockchain_storage = BlockchainStorage(config_params['blockchain_root_dir'], locks_dir, locks_dir_lock)
 	query_api = QueriesAPIServer(config_params["queries_port"], config_params["listen_backlog"], blockchain_storage)
 	query_api.run()
 
