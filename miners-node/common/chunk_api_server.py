@@ -78,8 +78,8 @@ class ChunkAPIServer(Server):
 
     def new_last_hash_and_diff(self, last_hash, new_diff):
         if not self.miners_are_busy:
-            logging.warning(f"!!!!!!!!!!!!!!!!!!!!!!! WHAT?")
-        
+            logging.error(f"!!!!!!!!!!!!!!!!!!!!!!! This state is invalid! A new block was added and miners werent working!")
+
         self.miners_are_busy = False
 
         with self.diff_hash_lock as dhl:
