@@ -3,11 +3,17 @@ import threading
 import logging
 from common.blockchain import Block
 
+def locked_apply(lock, func, args=()):
+    with lock as l:
+        return func(*args)
+
 class NewBlocksServer(Server):
     def __init__(self, port, listen_backlog, blockchain):
         Server.__init__(self, port, listen_backlog)
         self.blockchain = blockchain
+        self.blockchain_lock = threading.Lock()
         self.block_listener_socks = []
+        self.listeners_lock = threading.Lock()
     
     def handle_client_connection(self, client_sock):
         t_id = threading.get_ident()
@@ -33,24 +39,24 @@ class NewBlocksServer(Server):
             # finally:
             #     client_sock.close()
             
-            addition_success = self.blockchain.addBlock(new_block)
+            addition_success = locked_apply(self.blockchain_lock, self.blockchain.addBlock, (new_block,))
             logging.info(f"BLOCKS THREAD {t_id}: Attempted to add block with hash {new_block.hash()}. Result: {addition_success}")
 
             if addition_success:
-                self.blockchain.printBlockChain()
+                locked_apply(self.blockchain_lock, self.blockchain.printBlockChain)
                 self._announce_new_block()
 
     def _handle_block_listener(self, client_sock):
-        self.block_listener_socks.append(client_sock)
-        logging.info(f"Registered {client_sock.getpeername()} as Listener")
+        with self.listeners_lock as lck:
+            self.block_listener_socks.append(client_sock)
+            logging.info(f"Registered {client_sock.getpeername()} as Listener")
 
     def _announce_new_block(self):
-        # id = threading.get_ident()
-        # with open(f"/blockchain-files/{id}.txt", "w") as file:
-        #     file.write(str(self.blockchain))
+        last_hash = locked_apply(self.blockchain_lock, self.blockchain.getLastHash)
+        last_hash_b = str(last_hash.encode()
 
-        last_hash_b = str(self.blockchain.getLastHash()).encode()
-        logging.info(f"Starting to announce new block {last_hash_b} to {len(self.block_listener_socks)} listeners")
-        for s in self.block_listener_socks:
-            logging.info(f"Announcing new block {last_hash_b} to {s.getpeername()}")
-            s.send(last_hash_b)
+        with self.listeners_lock as lck:
+            logging.info(f"Starting to announce new block {last_hash_b} to {len(self.block_listener_socks)} listeners")
+            for s in self.block_listener_socks:
+                logging.info(f"Announcing new block {last_hash_b} to {s.getpeername()}")
+                s.send(last_hash_b)
