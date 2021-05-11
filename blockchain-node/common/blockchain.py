@@ -6,6 +6,9 @@ from common.blockchain_storage import BlockchainStorage
 import logging
 
 MAX_ENTRIES_AMOUNT = 5
+MAX_BLOCKS_PER_DIFF_UPDATE = 3
+TARGET_TIME_IN_SECONDS = 12
+
 def isCryptographicPuzzleSolved(aBlock):
     return aBlock.hash() < (2**256) / aBlock.header['difficulty'] - 1
     
@@ -70,6 +73,9 @@ class Blockchain:
     def __init__(self, root_dir, locks_dir, locks_dir_lock):
         self.blocks = []
         self.last_block_hash = 0
+        self.expected_difficulty = 1
+        self.start_time = datetime.datetime.now()
+        self.blocks_added_since_last_update = 0
         self.storage = BlockchainStorage(root_dir, locks_dir, locks_dir_lock)
         
     def addBlock(self, newBlock):
@@ -77,13 +83,24 @@ class Blockchain:
             self.blocks.append(newBlock)
             self.last_block_hash = newBlock.hash()
             self.storage.store_block(newBlock)
-            # got_block = self.storage.get_by_hash(newBlock.hash())
-            # logging.info(f"######## THE BLOCK STORED IS {got_block}")
-            return True
-        return False
+            self._adjust_difficulty()
+            return True, self.expected_difficulty
+        return False, self.expected_difficulty
     
+    def _adjust_difficulty(self):
+        self.blocks_added_since_last_update += 1
+        if self.blocks_added_since_last_update >= MAX_BLOCKS_PER_DIFF_UPDATE:
+            elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
+            self.expected_difficulty = self.expected_difficulty * (self.blocks_added_since_last_update/elapsed_time) * TARGET_TIME_IN_SECONDS
+            self.blocks_added_since_last_update = 0
+            self.start_time = datetime.datetime.now()
+            logging.info(f"BLOCKCHAIN: Updated difficulty to {self.expected_difficulty}")
+
     def isBlockValid(self, block):
-        return block.header['prev_hash'] == self.last_block_hash and isCryptographicPuzzleSolved(block)
+        logging.info(f"BLOCKCHAIN: Block has correct difficulty {self.expected_difficulty == block.header['difficulty']}")
+        return self.expected_difficulty == block.header['difficulty']\
+            and block.header['prev_hash'] == self.last_block_hash\
+            and isCryptographicPuzzleSolved(block)
     
     def getLastHash(self):
         return self.last_block_hash

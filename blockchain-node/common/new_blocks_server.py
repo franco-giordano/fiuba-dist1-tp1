@@ -39,12 +39,12 @@ class NewBlocksServer(Server):
             # finally:
             #     client_sock.close()
             
-            addition_success = locked_apply(self.blockchain_lock, self.blockchain.addBlock, (new_block,))
+            addition_success, new_diff = locked_apply(self.blockchain_lock, self.blockchain.addBlock, (new_block,))
             logging.info(f"BLOCKS THREAD {t_id}: Attempted to add block with hash {new_block.hash()}. Result: {addition_success}")
 
             if addition_success:
                 locked_apply(self.blockchain_lock, self.blockchain.printBlockChain)
-                self._announce_new_block()
+                self._announce_new_block(new_diff)
                 client_sock.send(b'BLOCK_ACCEPTED')
             else:
                 client_sock.send(b'BLOCK_REJECTED')
@@ -54,12 +54,12 @@ class NewBlocksServer(Server):
             self.block_listener_socks.append(client_sock)
             logging.info(f"Registered {client_sock.getpeername()} as Listener")
 
-    def _announce_new_block(self):
+    def _announce_new_block(self, new_diff):
         last_hash = locked_apply(self.blockchain_lock, self.blockchain.getLastHash)
-        last_hash_b = str(last_hash).encode()
+        announcement = f"{last_hash} {new_diff}".encode()
 
         with self.listeners_lock as lck:
-            logging.info(f"Starting to announce new block {last_hash_b} to {len(self.block_listener_socks)} listeners")
+            logging.info(f"Starting to announce new block {announcement} to {len(self.block_listener_socks)} listeners")
             for s in self.block_listener_socks:
-                logging.info(f"Announcing new block {last_hash_b} to {s.getpeername()}")
-                s.send(last_hash_b)
+                logging.info(f"Announcing new block {announcement} to {s.getpeername()}")
+                s.send(announcement)

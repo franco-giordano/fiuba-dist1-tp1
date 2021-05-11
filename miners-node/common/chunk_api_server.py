@@ -19,6 +19,7 @@ class ChunkAPIServer(Server):
         self.timer_lock = threading.Lock()
         self.miners_are_busy = False
         self.failed_to_dispatch_queue = False
+        self.block_difficulty = 1
 
     # In new thread
     def handle_client_connection(self, client_sock):
@@ -66,12 +67,13 @@ class ChunkAPIServer(Server):
                 self.dispatch_timer.start()
                 logging.info(f"THREAD {t_id}: Set new timer for dispatch, triggering in {DISPATCH_TIMEOUT_SECONDS} seconds")
 
-    def new_last_hash(self, last_hash):
+    def new_last_hash_and_diff(self, last_hash, new_diff):
         if not self.miners_are_busy:
             logging.warning(f"!!!!!!!!!!!!!!!!!!!!!!! WHAT?")
         
         self.miners_are_busy = False
         self.last_hash = last_hash
+        self.block_difficulty = new_diff
 
         if self.failed_to_dispatch_queue:
             logging.info(f"Detected previous failed dispatch attempt. Forcing one now...")
@@ -102,7 +104,7 @@ class ChunkAPIServer(Server):
         if self.miners_are_busy:
             logging.warning(f"!!!!!!!!!!!!!!!!!! Trying to dispatch while miners are busy! Something went wrong!")
 
-        block.header['difficulty'] = 1 # 1154890
+        block.header['difficulty'] = self.block_difficulty
         block.header['prev_hash'] = self.last_hash
 
         logging.info(f"Block built with prev_hash {block.header['prev_hash']}. Dispatching...")

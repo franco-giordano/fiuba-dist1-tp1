@@ -95,9 +95,9 @@ def blocks_listener_init(chunks_server, config_params):
 	sock.send('0'.encode()) # tell blockchain im a block listener
 	logging.info(f"LISTENER: connected to blockchain @ {config_params['blockchain_ip']}:{config_params['blockchain_port']}")
 	while True:
-		last_hash = sock.recv(256).rstrip().decode()
-		logging.info(f"LISTENER: new hash {last_hash}")
-		chunks_server.new_last_hash(int(last_hash))
+		last_hash, new_diff = sock.recv(256).rstrip().decode().split()
+		logging.info(f"LISTENER: new hash {last_hash}, new diff {new_diff}")
+		chunks_server.new_last_hash_and_diff(int(last_hash), float(new_diff))
 
 def stats_init(config_params, stats_miners_queue):
 	storage_lock = Lock()
