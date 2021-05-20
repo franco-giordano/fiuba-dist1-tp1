@@ -1,7 +1,7 @@
 #!/bin/bash
 SERVER_IP='miners-node'
 SERVER_PORT=10000
-MESSAGE='hi!'$RANDOM
+MESSAGE="This is a test chunk! $1"
 
 SUCCESS_MSG='== Server responded successfully'
 ERROR_MSG='XX Response failed!'
