@@ -1,6 +1,7 @@
 import socket
 import logging
 from threading import Thread
+import queue
 from common.socket_transceiver import SocketTransceiver
 
 class Server:
@@ -9,7 +10,20 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self.threads = []
+        self.MAX_PENDING_CONNECTIONS = 256
+        self.WORKERS_AMOUNT = 3
+        self.workers_queue = queue.Queue(self.MAX_PENDING_CONNECTIONS)
+        self.workers = [Thread(target = self._worker_loop) for _ in range(self.WORKERS_AMOUNT)]
+
+    def _start_workers(self):
+        for w in self.workers:
+            w.start()
+
+    def _worker_loop(self):
+        while True:
+            transciever = self.workers_queue.get()
+            logging.info(f"SRV WORKER: Will process connection with {transciever.peer_name()}")
+            self.handle_client_connection(transciever)
 
     def run(self):
         """
@@ -18,17 +32,16 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
+        self._start_workers()
+
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
         while True:
             sock_transceiver = self.accept_new_connection()
-            thread = Thread(target = self.handle_client_connection, args = (sock_transceiver, ))
-            thread.start()
-            self.threads.append(thread)
-        
-        for t in self.threads:
-            t.join()
+            self.workers_queue.put(sock_transceiver)            
 
+        for t in self.workers:
+            t.join()
 
     def handle_client_connection(self, sock_transceiver):
         """

@@ -11,8 +11,9 @@ class MinerClient:
         self.blockchain_transceiver = BlockchainTransceiver(sock)
 
         self.blockchain_transceiver.register_as_uploader() # tell blockchain im a block uploader
-        logging.info(f"MINER {id}: connected to blockchain @ {blockchain_ip}:{blockchain_port}")
+        logging.info(f"MINER CLIENT: connected to blockchain @ {blockchain_ip}:{blockchain_port}")
         
-    def run(self, id, blocks_queue, stats_miners_queue):
-        self.miner = Miner(id, blocks_queue, stats_miners_queue)
+    def run(self, m_id, blocks_queue, stats_miners_queue):
+        logging.info(f"MINER {m_id}: starting...")
+        self.miner = Miner(m_id, blocks_queue, stats_miners_queue)
         self.miner.run(self.blockchain_transceiver)
