@@ -1,4 +1,4 @@
-from common.server import Server
+from common.keep_alive_server import KeepAliveServer
 import threading
 import logging
 from common.blocks_transceiver import BlocksTransceiver
@@ -7,9 +7,9 @@ def locked_apply(lock, func, args=()):
     with lock as l:
         return func(*args)
 
-class NewBlocksServer(Server):
+class NewBlocksServer(KeepAliveServer):
     def __init__(self, port, listen_backlog, blockchain):
-        Server.__init__(self, port, listen_backlog)
+        KeepAliveServer.__init__(self, port, listen_backlog)
         self.blockchain = blockchain
         self.blockchain_lock = threading.Lock()
         self.block_listener_transceivers = []
