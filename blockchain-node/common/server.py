@@ -1,6 +1,7 @@
 import socket
 import logging
 from threading import Thread
+from common.socket_transceiver import SocketTransceiver
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -20,8 +21,8 @@ class Server:
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
         while True:
-            client_sock = self.accept_new_connection()
-            thread = Thread(target = self.handle_client_connection, args = (client_sock, ))
+            sock_transceiver = self.accept_new_connection()
+            thread = Thread(target = self.handle_client_connection, args = (sock_transceiver, ))
             thread.start()
             self.threads.append(thread)
             # self.__handle_client_connection(client_sock, pool_queues)
@@ -30,7 +31,7 @@ class Server:
             t.join()
 
 
-    def handle_client_connection(self, client_sock):
+    def handle_client_connection(self, sock_transceiver):
         """
         Read message from a specific client socket and closes the socket
 
@@ -38,8 +39,10 @@ class Server:
         client socket will also be closed
         """
         logging.info("NOT IMPLEMENTED!")
-        client_sock.close()
+        sock_transceiver.close()
 
+    def _transceiver_from_sock(client_sock):
+        return SocketTransceiver(client_sock)
 
     def accept_new_connection(self):
         """
@@ -53,4 +56,5 @@ class Server:
         logging.info("Proceed to accept new connections")
         c, addr = self._server_socket.accept()
         logging.info('Got connection from {}'.format(addr))
-        return c
+        s = self._transceiver_from_sock(c)
+        return s
