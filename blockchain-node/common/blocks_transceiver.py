@@ -8,20 +8,19 @@ class BlocksTransceiver(SocketTransceiver):
         self.MAX_BLOCKS_SIZE = 65536 * 257
 
     def recv_if_client_is_uploader(self):
-        cli_type = self.sock.recv(self.CLIENT_TYPE_SIZE).rstrip().decode()
+        cli_type = self.recv_and_strip(self.CLIENT_TYPE_SIZE).decode()
 
         return cli_type == '1'
 
     def recv_block(self):
-        msg = self.sock.recv(self.MAX_BLOCKS_SIZE).rstrip()
+        msg = self.recv_and_strip(self.MAX_BLOCKS_SIZE)
         return Block.deserialize(msg)
 
     def send_block_accepted(self):
-        self.send(b'BLOCK_ACCEPTED')
+        self.send_strings('BLOCK_ACCEPTED')
 
     def send_block_rejected(self):
-        self.send(b'BLOCK_REJECTED')
+        self.send_strings('BLOCK_REJECTED')
 
     def send_new_hash_and_diff(self, last_hash, new_diff):
-        announcement = f"{last_hash} {new_diff}".encode()
-        self.send(announcement)
+        self.send_strings(str(last_hash), str(new_diff))

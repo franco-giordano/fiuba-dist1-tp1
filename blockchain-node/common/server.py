@@ -25,7 +25,6 @@ class Server:
             thread = Thread(target = self.handle_client_connection, args = (sock_transceiver, ))
             thread.start()
             self.threads.append(thread)
-            # self.__handle_client_connection(client_sock, pool_queues)
         
         for t in self.threads:
             t.join()
