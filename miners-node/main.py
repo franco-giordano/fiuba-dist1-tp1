@@ -7,7 +7,6 @@ from common.chunk_api_server import ChunkAPIServer
 import configparser
 
 import socket
-from common.miner import Miner
 from multiprocessing import Process, Queue
 from threading import Thread, Lock
 
@@ -15,6 +14,8 @@ from common.stats_api_server import StatsAPIServer
 from common.stats_storage import StatsStorage
 
 from common.blockchain_transceiver import BlockchainTransceiver
+from common.miner_client import MinerClient
+from common.listener_client import ListenerClient
 
 NUMER_OF_MINERS = 5
 
@@ -52,7 +53,7 @@ def get_config_key(name, config_fallback):
 		try:
 			value = config_fallback[name]
 		except KeyError as e:
-			raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
+			raise KeyError("Key was not found. Error: {}. Aborting server".format(e))
 	
 	return value
 
@@ -82,28 +83,13 @@ def main():
 	
 	chunks_server.run()
 
-
 def miner_init(id, blocks_queue, config_params, stats_miners_queue):
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.connect(('blockchain-node', 20000))
-	blockchain_transceiver = BlockchainTransceiver(sock)
-
-	blockchain_transceiver.register_as_uploader() # tell blockchain im a block uploader
-	logging.info(f"MINER {id}: connected to blockchain @ {config_params['blockchain_ip']}:{config_params['blockchain_port']}")
-	miner = Miner(id, blocks_queue, stats_miners_queue)
-	miner.run(blockchain_transceiver)
+	miner_cli = MinerClient(config_params['blockchain_ip'], config_params['blockchain_port'])
+	miner_cli.run(id, blocks_queue, stats_miners_queue)
 
 def blocks_listener_init(chunks_server, config_params):
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.connect(('blockchain-node', 20000))
-	blockchain_transceiver = BlockchainTransceiver(sock)
-
-	blockchain_transceiver.register_as_listener() # tell blockchain im a block listener
-	logging.info(f"LISTENER: connected to blockchain @ {config_params['blockchain_ip']}:{config_params['blockchain_port']}")
-	while True:
-		last_hash, new_diff = blockchain_transceiver.recv_new_hash_and_diff()
-		logging.info(f"LISTENER: new hash {last_hash}, new diff {new_diff}")
-		chunks_server.new_last_hash_and_diff(last_hash, new_diff)
+	listener_cli = ListenerClient(config_params['blockchain_ip'], config_params['blockchain_port'])
+	listener_cli.run(chunks_server)
 
 def stats_init(config_params, stats_miners_queue):
 	storage_lock = Lock()
