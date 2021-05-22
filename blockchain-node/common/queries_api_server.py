@@ -55,5 +55,5 @@ class QueriesAPIServer(Server):
             queries_transceiver.send_blocks_found_for_minute(blocks)
             logging.info(f"QUERIES THREAD {t_id}: Responded BLOCK_HASH_FOUND to {queries_transceiver.peer_name()}")
 
-    def _transceiver_from_sock(sock):
+    def _transceiver_from_sock(self, sock):
         return QueriesTransceiver(sock)

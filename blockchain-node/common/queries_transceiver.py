@@ -1,4 +1,5 @@
 from common.socket_transceiver import SocketTransceiver
+from common.blockchain import Block
 import datetime
 import json
 

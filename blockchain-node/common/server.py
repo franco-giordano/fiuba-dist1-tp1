@@ -40,7 +40,7 @@ class Server:
         logging.info("NOT IMPLEMENTED!")
         sock_transceiver.close()
 
-    def _transceiver_from_sock(client_sock):
+    def _transceiver_from_sock(self, client_sock):
         return SocketTransceiver(client_sock)
 
     def accept_new_connection(self):
