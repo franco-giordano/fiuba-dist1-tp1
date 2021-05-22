@@ -10,7 +10,7 @@ class BlocksTransceiver(SocketTransceiver):
     def recv_if_client_is_uploader(self):
         cli_type = self.recv_and_strip(self.CLIENT_TYPE_SIZE).decode()
 
-        return cli_type == '1'
+        return cli_type == 'BLOCK_UPLOADER'
 
     def recv_block(self):
         msg = self.recv_and_strip(self.MAX_BLOCKS_SIZE)

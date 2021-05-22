@@ -25,6 +25,9 @@ class Block:
     def hash(self):
         return int(sha256(repr(self.header).encode('utf-8') + repr(self.entries).encode('utf-8')).hexdigest(), 16)
     
+    def get_datetime(self):
+        return self.header['timestamp']
+
     @staticmethod
     def deserialize(bytes_recv):
         parsed = json.loads(bytes_recv.decode('utf-8'))
@@ -37,9 +40,12 @@ class Block:
         return block
 
     def serialize(self):
+        return self.serialize_str().encode('utf-8')
+
+    def serialize_str(self):
         dictionary = copy.deepcopy(self.__dict__)
         dictionary['header']['timestamp'] = dictionary['header']['timestamp'].isoformat()
-        return json.dumps(dictionary).encode('utf-8')
+        return json.dumps(dictionary)
 
     def __str__(self):
         entries = ",".join(self.entries)

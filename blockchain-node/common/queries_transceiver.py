@@ -8,7 +8,7 @@ class QueriesTransceiver(SocketTransceiver):
         SocketTransceiver.__init__(self, sock)
         self.MAX_QUERY_SIZE = 4096
     
-    def recv(self):
+    def recv_and_parse(self):
         query_list = self.recv_and_strip(self.MAX_QUERY_SIZE).decode().split(' ')
 
         command = query_list[0]

@@ -4,6 +4,7 @@ import queue
 import threading
 from common.server import Server
 import copy
+from common.chunk_transceiver import ChunkTransceiver
 
 MAX_PENDING_CHUNKS = 256
 DISPATCH_TIMEOUT_SECONDS = 10
@@ -23,30 +24,32 @@ class ChunkAPIServer(Server):
         self.timer_lock = threading.Lock()
         self.diff_hash_lock = threading.Lock()
 
+    def _transceiver_from_sock(self, sock):
+        return ChunkTransceiver(sock)
+
     # In new thread
-    def handle_client_connection(self, client_sock):
+    def handle_client_connection(self, chunk_transceiver):
         t_id = threading.get_ident()
         try:
-            chunk_b = client_sock.recv(MAX_CHUNK_SIZE + 5).rstrip()
+            chunk = chunk_transceiver.recv_chunk()
 
-            if len(chunk_b) > MAX_CHUNK_SIZE:
-                client_sock.send(f"CHUNK_TOO_BIG\n".encode())
-                logging.info(f'THREAD {t_id}: Received and responded CHUNK_TOO_BIG to {client_sock.getpeername()}. Chunk Length: {len(chunk_b)}')
+            if len(chunk) > MAX_CHUNK_SIZE:
+                chunk_transceiver.send_too_big()
+                logging.info(f'THREAD {t_id}: Received and responded CHUNK_TOO_BIG to {chunk_transceiver.peer_name()}. Chunk Length: {len(chunk)}')
                 return
 
-            chunk = chunk_b.decode()
-            logging.info(f'THREAD {t_id}: Chunk received from connection {client_sock.getpeername()}. Chunk: {chunk}')
+            logging.info(f'THREAD {t_id}: Chunk received from connection {chunk_transceiver.peer_name()}. Chunk: {chunk}')
             success = self._add_to_chunk_queue(chunk, t_id)
             if success:
-                client_sock.send(f"CHUNK_ACCEPTED {chunk}\n".encode())
-                logging.info(f'THREAD {t_id}: Responded CHUNK_ACCEPTED to {client_sock.getpeername()}')
+                chunk_transceiver.send_chunk_accepted(chunk)
+                logging.info(f'THREAD {t_id}: Responded CHUNK_ACCEPTED to {chunk_transceiver.peer_name()}')
             else:
-                client_sock.send("CHUNK_DISCARDED\n".encode())
-                logging.info(f'THREAD {t_id}: Responded CHUNK_DISCARDED to {client_sock.getpeername()}')
+                chunk_transceiver.send_chunk_discarded()
+                logging.info(f'THREAD {t_id}: Responded CHUNK_DISCARDED to {chunk_transceiver.peer_name()}')
         except OSError:
-            logging.info("Error while reading socket {}".format(client_sock))
+            logging.info(f"Error while reading socket with {chunk_transceiver.peer_name()}")
         finally:
-            client_sock.close()
+            chunk_transceiver.close()
 
     def _add_to_chunk_queue(self, chunk, t_id):
         added = False

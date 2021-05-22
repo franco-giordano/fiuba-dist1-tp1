@@ -12,7 +12,7 @@ class QueriesAPIServer(Server):
     def handle_client_connection(self, queries_transceiver):
         t_id = threading.get_ident()
         try:
-            query_list = queries_transceiver.recv()
+            query_list = queries_transceiver.recv_and_parse()
             logging.info(f"QUERIES THREAD {t_id}: Received query {query_list}")
 
             self.dispatch_query(queries_transceiver, query_list)
