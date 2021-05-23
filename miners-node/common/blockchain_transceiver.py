@@ -16,8 +16,8 @@ class BlockchainTransceiver(SocketTransceiver):
         self.send_strings(block.serialize_str())
 
     def recv_upload_response(self):
-        return self.recv_and_strip(self.MAX_UPLOAD_RESPONSE_SIZE).decode()
+        return self.recv_decoded(self.MAX_UPLOAD_RESPONSE_SIZE)
 
     def recv_new_hash_and_diff(self):
-        data = self.recv_and_strip(self.MAX_HASH_AND_DIFF_SIZE).decode().split()
+        data = self.recv_decoded(self.MAX_HASH_AND_DIFF_SIZE).split()
         return int(data[0]), float(data[1])

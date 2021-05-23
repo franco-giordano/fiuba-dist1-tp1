@@ -6,7 +6,7 @@ class ChunkTransceiver(SocketTransceiver):
         self.MAX_CHUNK_SIZE = 65536
 
     def recv_chunk(self):
-        return self.recv_and_strip(self.MAX_CHUNK_SIZE + 5).decode()
+        return self.recv_decoded(self.MAX_CHUNK_SIZE + 5)
 
     def send_too_big(self):
         self.send_strings("CHUNK_TOO_BIG\n")

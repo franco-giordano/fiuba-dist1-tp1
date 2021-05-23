@@ -9,7 +9,7 @@ class QueriesTransceiver(SocketTransceiver):
         self.MAX_QUERY_SIZE = 4096
     
     def recv_and_parse(self):
-        query_list = self.recv_and_strip(self.MAX_QUERY_SIZE).decode().split(' ')
+        query_list = self.recv_decoded(self.MAX_QUERY_SIZE).split(' ')
 
         command = query_list[0]
         if command == 'QUERY_HASH':
