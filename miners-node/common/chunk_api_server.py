@@ -41,11 +41,11 @@ class ChunkAPIServer(Server):
             logging.info(f'THREAD {t_id}: Chunk received from connection {chunk_transceiver.peer_name()}. Chunk: {chunk}')
             success = self._add_to_chunk_queue(chunk, t_id)
             if success:
-                chunk_transceiver.send_chunk_accepted(chunk)
                 logging.info(f'THREAD {t_id}: Responded CHUNK_ACCEPTED to {chunk_transceiver.peer_name()}')
+                chunk_transceiver.send_chunk_accepted(chunk)
             else:
-                chunk_transceiver.send_chunk_discarded()
                 logging.info(f'THREAD {t_id}: Responded CHUNK_DISCARDED to {chunk_transceiver.peer_name()}')
+                chunk_transceiver.send_chunk_discarded()
         except OSError:
             logging.info(f"Error while reading socket with {chunk_transceiver.peer_name()}")
         finally:
