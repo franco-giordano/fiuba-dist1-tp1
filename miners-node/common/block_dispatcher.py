@@ -15,15 +15,15 @@ class BlockDispatcher:
         self.block_difficulty = 1.0
     
     def build_and_dispatch_block(self, chunks_queue):
-        logging.info(f"Block building triggered, will process {chunks_queue.qsize()} chunks.")
+        logging.info(f"BLOCK DPCHR: Block building triggered, will process {chunks_queue.qsize()} chunks.")
 
         if self.miners_are_busy:
-            logging.warning(f"Failed to dispatch: Miners are busy or new block is being added, cant dispatch now.")
+            logging.warning(f"BLOCK DPCHR: Failed to dispatch: Miners are busy or new block is being added, cant dispatch now.")
             return
 
         new_block = self._dequeue_and_build_block(chunks_queue)
         self._dispatch_block(new_block)
-        logging.info(f"!!FILTRAME Pend Chunks Queue is now at: {chunks_queue.qsize()}/{MAX_CHUNKS_PER_BLOCK}")
+        logging.info(f"BLOCK DPCHR: Pend Chunks Queue is now at: {chunks_queue.qsize()}/{MAX_CHUNKS_PER_BLOCK}")
 
     def _dequeue_and_build_block(self, chunks_queue):
         entries = []
@@ -47,13 +47,15 @@ class BlockDispatcher:
             block.header['difficulty'] = self.block_difficulty
             block.header['prev_hash'] = self.last_hash
 
-        logging.info(f"!!FILTRAME Block built with prev_hash {block.header['prev_hash']} and {block.header['entries_amount']} entries. Reason: UNKNOWN Dispatching...")
+        logging.info(f"BLOCK DPCHR: Block built with \
+            prev_hash {block.header['prev_hash']} and\
+            {block.header['entries_amount']} entries. Dispatching...")
 
         self.miners_are_busy = True
         for p in self.pool_queues:
             p.put(copy.deepcopy(block))
 
-        logging.info(f"Success dispatching block with prev_hash {block.header['prev_hash']}.")
+        logging.info(f"BLOCK DPCHR: Success dispatching block with prev_hash {block.header['prev_hash']}.")
 
     def new_last_hash_and_diff(self, last_hash, new_diff):
         if not self.miners_are_busy:
