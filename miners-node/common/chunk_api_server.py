@@ -7,7 +7,7 @@ from common.block_dispatcher import BlockDispatcher
 
 class ChunkAPIServer(Server):
     def __init__(self, config_params, pool_queues):
-        Server.__init__(self, config_params["port"], config_params["listen_backlog"])
+        Server.__init__(self, config_params["port"], config_params["listen_backlog"], config_params['pending_conn'], config_params['workers_amount'])
         block_dispatcher = BlockDispatcher(pool_queues, config_params['max_chunks_per_block'])
         self.MAX_CHUNK_SIZE = config_params["max_chunk_size"]
         self.chunk_manager = ChunkManager(block_dispatcher, config_params)

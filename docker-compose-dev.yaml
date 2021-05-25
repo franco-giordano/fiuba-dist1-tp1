@@ -9,7 +9,7 @@ services:
       - ./stats-files:/stats-files
     environment:
       - PYTHONUNBUFFERED=1
-      # - SERVER_IP=server
+      - MAX_CHUNKS_PER_BLOCK=20
       # - SERVER_PORT=12345
       # - SERVER_LISTEN_BACKLOG=5
     networks:
@@ -24,7 +24,7 @@ services:
       - ./blockchain-files:/blockchain-files
     environment:
       - PYTHONUNBUFFERED=1
-      # - SERVER_IP=server
+      - MAX_CHUNKS_PER_BLOCK=20
       # - SERVER_PORT=12345
       # - SERVER_LISTEN_BACKLOG=5
     networks:
@@ -46,22 +46,6 @@ services:
   #     - testing_net
   #   depends_on:
   #     - miners-node
-
-  # client2:
-  #   container_name: client2
-  #   image: client:latest
-  #   entrypoint: /client
-  #   volumes:
-  #     - ./client:/client-cfg
-  #   environment:
-  #     - CLI_ID=2
-  #     # - CLI_SERVER_ADDRESS=server:12345
-  #     # - CLI_LOOP_LAPSE=1m2s
-  #     # - CLI_LOOP_PERIOD=10s
-  #   networks:
-  #     - testing_net
-  #   depends_on:
-  #     - server
 
 networks:
   testing_net:

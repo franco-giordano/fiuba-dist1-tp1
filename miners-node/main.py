@@ -44,6 +44,8 @@ def parse_config_params():
 		config_params["dispatch_block_timeout_seconds"] = int(get_config_key("DISPATCH_BLOCK_TIMEOUT_SECONDS", ini_config))
 		config_params["max_chunk_size"] = int(get_config_key("MAX_CHUNK_SIZE", ini_config))
 		config_params["number_of_miners"] = int(get_config_key("NUMBER_OF_MINERS", ini_config))
+		config_params["pending_conn"] = int(get_config_key("MAX_PENDING_CONNECTIONS", ini_config))
+		config_params["workers_amount"] = int(get_config_key("SERVER_WORKERS_AMOUNT", ini_config))
 	except ValueError as e:
 		raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
@@ -102,7 +104,7 @@ def stats_init(config_params, stats_miners_queue):
 	new_stats_listener.start()
 	logging.info(f"Initialized miner stats listener")
 
-	stats_api = StatsAPIServer(config_params['stats_port'], config_params['listen_backlog'], stats_storage, storage_lock)
+	stats_api = StatsAPIServer(config_params, stats_storage, storage_lock)
 	logging.info(f"Initializing Stats Querying API")
 	stats_api.run()
 

@@ -38,6 +38,8 @@ def parse_config_params():
 		config_params["max_blocks_per_diff_update"] = int(get_config_key("MAX_BLOCKS_PER_DIFF_UPDATE", ini_config))
 		config_params["target_time_in_seconds"] = int(get_config_key("TARGET_TIME_IN_SECONDS", ini_config))
 		config_params["suffix_len"] = int(get_config_key("SUFFIX_LEN", ini_config))
+		config_params["pending_conn"] = int(get_config_key("MAX_PENDING_CONNECTIONS", ini_config))
+		config_params["workers_amount"] = int(get_config_key("SERVER_WORKERS_AMOUNT", ini_config))
 	except ValueError as e:
 		raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 

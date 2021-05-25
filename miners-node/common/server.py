@@ -5,13 +5,13 @@ import queue
 from common.socket_transceiver import SocketTransceiver
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, MAX_PENDING_CONNECTIONS=256, WORKERS_AMOUNT=3):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self.MAX_PENDING_CONNECTIONS = 256
-        self.WORKERS_AMOUNT = 3
+        self.MAX_PENDING_CONNECTIONS = MAX_PENDING_CONNECTIONS
+        self.WORKERS_AMOUNT = WORKERS_AMOUNT
         self.workers_queue = queue.Queue(self.MAX_PENDING_CONNECTIONS)
         self.workers = [Thread(target = self._worker_loop) for _ in range(self.WORKERS_AMOUNT)]
 

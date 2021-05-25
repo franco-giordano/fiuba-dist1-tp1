@@ -4,8 +4,8 @@ import threading
 from common.stats_transceiver import StatsTransceiver
 
 class StatsAPIServer(Server):
-    def __init__(self, port, listen_backlog, stats_storage, storage_lock):
-        Server.__init__(self, port, listen_backlog)
+    def __init__(self, config_params, stats_storage, storage_lock):
+        Server.__init__(self, config_params['stats_port'], config_params['listen_backlog'], config_params['pending_conn'], config_params['workers_amount'])
         self.stats_storage = stats_storage
         self.storage_lock = storage_lock
 
