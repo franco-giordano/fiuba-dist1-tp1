@@ -5,14 +5,16 @@ import copy
 from common.blockchain_storage import BlockchainStorage
 import logging
 
-MAX_ENTRIES_AMOUNT = 256
-MAX_BLOCKS_PER_DIFF_UPDATE = 3
-TARGET_TIME_IN_SECONDS = 12
+# MAX_ENTRIES_AMOUNT = 256
+# MAX_BLOCKS_PER_DIFF_UPDATE = 3
+# TARGET_TIME_IN_SECONDS = 12
 
 def isCryptographicPuzzleSolved(aBlock):
     return aBlock.hash() < (2**256) / aBlock.header['difficulty'] - 1
     
-class Block: 
+class Block:
+    MAX_CHUNKS_PER_BLOCK = 0
+
     def __init__(self, entries):
         self.header = {
             'prev_hash': 0,
@@ -21,7 +23,7 @@ class Block:
             'entries_amount': len(entries),
             'difficulty': 1
         }
-        if (len(entries) <= MAX_ENTRIES_AMOUNT):
+        if (len(entries) <= self.MAX_CHUNKS_PER_BLOCK):
             self.entries = entries
         else:
             raise 'Exceeding max block size'
@@ -70,13 +72,16 @@ class Block:
         """.format(hex(self.hash()), hex(self.header['prev_hash']), self.header['nonce'], self.header['timestamp'], self.header['entries_amount'], self.header['difficulty'], entries)
 
 class Blockchain:
-    def __init__(self, root_dir, locks_dir, locks_dir_lock):
+    def __init__(self, config_params, locks_dir, locks_dir_lock):
         self.blocks = []
         self.last_block_hash = 0
         self.expected_difficulty = 1
         self.start_time = datetime.datetime.now()
         self.blocks_added_since_last_update = 0
-        self.storage = BlockchainStorage(root_dir, locks_dir, locks_dir_lock)
+        self.storage = BlockchainStorage(config_params['blockchain_root_dir'], locks_dir, locks_dir_lock, config_params['suffix_len'])
+        self.MAX_BLOCKS_PER_DIFF_UPDATE = config_params['max_blocks_per_diff_update']
+        self.TARGET_TIME_IN_SECONDS = config_params['target_time_in_seconds']
+        Block.MAX_CHUNKS_PER_BLOCK = config_params['max_chunks_per_block']
         
     def addBlock(self, newBlock):
         if (self.isBlockValid(newBlock)):
@@ -89,9 +94,9 @@ class Blockchain:
     
     def _adjust_difficulty(self):
         self.blocks_added_since_last_update += 1
-        if self.blocks_added_since_last_update >= MAX_BLOCKS_PER_DIFF_UPDATE:
+        if self.blocks_added_since_last_update >= self.MAX_BLOCKS_PER_DIFF_UPDATE:
             elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
-            self.expected_difficulty = self.expected_difficulty * (self.blocks_added_since_last_update/elapsed_time) * TARGET_TIME_IN_SECONDS
+            self.expected_difficulty = self.expected_difficulty * (self.blocks_added_since_last_update/elapsed_time) * self.TARGET_TIME_IN_SECONDS
             self.blocks_added_since_last_update = 0
             self.start_time = datetime.datetime.now()
             logging.info(f"BLOCKCHAIN: Updated difficulty to {self.expected_difficulty}")

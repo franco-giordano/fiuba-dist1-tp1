@@ -1,9 +1,10 @@
 from common.socket_transceiver import SocketTransceiver
 
 class ChunkTransceiver(SocketTransceiver):
+    MAX_CHUNK_SIZE = 0
+
     def __init__(self, sock):
         SocketTransceiver.__init__(self, sock)
-        self.MAX_CHUNK_SIZE = 65536
 
     def recv_chunk(self):
         return self.recv_decoded(self.MAX_CHUNK_SIZE + 5)

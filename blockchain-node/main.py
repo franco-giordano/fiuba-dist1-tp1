@@ -33,6 +33,11 @@ def parse_config_params():
 		config_params["queries_port"] = int(get_config_key("QUERIES_SERVER_PORT", ini_config))
 		config_params["listen_backlog"] = int(get_config_key("SERVERS_LISTEN_BACKLOG", ini_config))
 		config_params['blockchain_root_dir'] = get_config_key("BLOCKCHAIN_ROOT_DIR", ini_config)
+		config_params["max_chunks_per_block"] = int(get_config_key("MAX_CHUNKS_PER_BLOCK", ini_config))
+		config_params["max_chunk_size"] = int(get_config_key("MAX_CHUNK_SIZE", ini_config))
+		config_params["max_blocks_per_diff_update"] = int(get_config_key("MAX_BLOCKS_PER_DIFF_UPDATE", ini_config))
+		config_params["target_time_in_seconds"] = int(get_config_key("TARGET_TIME_IN_SECONDS", ini_config))
+		config_params["suffix_len"] = int(get_config_key("SUFFIX_LEN", ini_config))
 	except ValueError as e:
 		raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
@@ -62,8 +67,8 @@ def main():
 	query_api_thread = threading.Thread(target = query_api_init, args = (config_params, locks_dir, locks_dir_lock))
 	query_api_thread.start()
 
-	blockchain = Blockchain(config_params['blockchain_root_dir'], locks_dir, locks_dir_lock)
-	new_blocks_server = NewBlocksServer(config_params["blocks_port"], config_params["listen_backlog"], blockchain)
+	blockchain = Blockchain(config_params, locks_dir, locks_dir_lock)
+	new_blocks_server = NewBlocksServer(config_params, blockchain)
 	new_blocks_server.run()
 
 	query_api_thread.join()
@@ -83,8 +88,8 @@ def create_file_locks(suffix_files, hourly_files):
 
 # In new thread
 def query_api_init(config_params, locks_dir, locks_dir_lock):
-	blockchain_storage = BlockchainStorage(config_params['blockchain_root_dir'], locks_dir, locks_dir_lock)
-	query_api = QueriesAPIServer(config_params["queries_port"], config_params["listen_backlog"], blockchain_storage)
+	blockchain_storage = BlockchainStorage(config_params['blockchain_root_dir'], locks_dir, locks_dir_lock, config_params['suffix_len'])
+	query_api = QueriesAPIServer(config_params, blockchain_storage)
 	query_api.run()
 
 def initialize_log():

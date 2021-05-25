@@ -5,13 +5,13 @@ from common.chunk_transceiver import ChunkTransceiver
 from common.chunk_manager import ChunkManager
 from common.block_dispatcher import BlockDispatcher
 
-MAX_CHUNK_SIZE = 65536
-
 class ChunkAPIServer(Server):
-    def __init__(self, port, listen_backlog, pool_queues):
-        Server.__init__(self, port, listen_backlog)
-        block_dispatcher = BlockDispatcher(pool_queues)
-        self.chunk_manager = ChunkManager(block_dispatcher)
+    def __init__(self, config_params, pool_queues):
+        Server.__init__(self, config_params["port"], config_params["listen_backlog"])
+        block_dispatcher = BlockDispatcher(pool_queues, config_params['max_chunks_per_block'])
+        self.MAX_CHUNK_SIZE = config_params["max_chunk_size"]
+        self.chunk_manager = ChunkManager(block_dispatcher, config_params)
+        ChunkTransceiver.MAX_CHUNK_SIZE = self.MAX_CHUNK_SIZE
 
     def _transceiver_from_sock(self, sock):
         return ChunkTransceiver(sock)
@@ -22,7 +22,7 @@ class ChunkAPIServer(Server):
         try:
             chunk = chunk_transceiver.recv_chunk()
 
-            if len(chunk) > MAX_CHUNK_SIZE:
+            if len(chunk) > self.MAX_CHUNK_SIZE:
                 chunk_transceiver.send_too_big()
                 logging.info(f'THREAD {t_id}: Received and responded CHUNK_TOO_BIG to {chunk_transceiver.peer_name()}. Chunk Length: {len(chunk)}')
                 return

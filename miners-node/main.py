@@ -17,8 +17,6 @@ from common.blockchain_transceiver import BlockchainTransceiver
 from common.miner_client import MinerClient
 from common.listener_client import ListenerClient
 
-NUMER_OF_MINERS = 5
-
 def parse_config_params():
 	""" Parse env variables to find program config params
 
@@ -41,6 +39,11 @@ def parse_config_params():
 		config_params["blockchain_ip"] = get_config_key("SERVER_BLOCKCHAIN_IP", ini_config)
 		config_params["blockchain_port"] = int(get_config_key("SERVER_BLOCKCHAIN_PORT", ini_config))
 		config_params["stats_file_path"] = get_config_key("STATS_FILE_PATH", ini_config)
+		config_params["max_chunks_per_block"] = int(get_config_key("MAX_CHUNKS_PER_BLOCK", ini_config))
+		config_params["max_pending_chunks"] = int(get_config_key("MAX_PENDING_CHUNKS", ini_config))
+		config_params["dispatch_block_timeout_seconds"] = int(get_config_key("DISPATCH_BLOCK_TIMEOUT_SECONDS", ini_config))
+		config_params["max_chunk_size"] = int(get_config_key("MAX_CHUNK_SIZE", ini_config))
+		config_params["number_of_miners"] = int(get_config_key("NUMBER_OF_MINERS", ini_config))
 	except ValueError as e:
 		raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
@@ -64,7 +67,7 @@ def main():
 	pool_queues = []
 	stats_miners_queue = Queue()
 	miners_procs = []
-	for id in range(NUMER_OF_MINERS):
+	for id in range(config_params['number_of_miners']):
 		q = Queue()
 		pool_queues.append(q)
 		miners_procs.append(Process(target=miner_init, args=(id, q, config_params, stats_miners_queue)))
@@ -76,7 +79,7 @@ def main():
 	stats_proc.start()
 
 	# Initialize server and start server loop
-	chunks_server = ChunkAPIServer(config_params["port"], config_params["listen_backlog"], pool_queues)
+	chunks_server = ChunkAPIServer(config_params, pool_queues)
 
 	new_blocks_listener = Thread(target = blocks_listener_init, args = (chunks_server, config_params))
 	new_blocks_listener.start()

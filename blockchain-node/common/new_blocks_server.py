@@ -8,12 +8,14 @@ def locked_apply(lock, func, args=()):
         return func(*args)
 
 class NewBlocksServer(KeepAliveServer):
-    def __init__(self, port, listen_backlog, blockchain):
-        KeepAliveServer.__init__(self, port, listen_backlog)
+    def __init__(self, config_params, blockchain):
+        KeepAliveServer.__init__(self, config_params["blocks_port"], config_params["listen_backlog"])
         self.blockchain = blockchain
         self.blockchain_lock = threading.Lock()
         self.block_listener_transceivers = []
         self.listeners_lock = threading.Lock()
+        BlocksTransceiver.MAX_CHUNKS_PER_BLOCK = config_params['max_chunks_per_block']
+        BlocksTransceiver.MAX_CHUNK_SIZE = config_params['max_chunk_size']
     
     def handle_client_connection(self, blocks_transceiver):
         t_id = threading.get_ident()

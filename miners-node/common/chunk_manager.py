@@ -3,16 +3,13 @@ from threading import Lock, get_ident
 import logging
 from common.locked_timer import LockedTimer
 
-MAX_CHUNKS_PER_BLOCK = 20
-MAX_PENDING_CHUNKS = 1024
-DISPATCH_TIMEOUT_SECONDS = 10
-
 class ChunkManager:
-    def __init__(self, block_dispatcher):
+    def __init__(self, block_dispatcher, config_params):
+        self.MAX_CHUNKS_PER_BLOCK = config_params['max_chunks_per_block']
         self.block_dispatcher = block_dispatcher
-        self.pending_chunks_queue = queue.Queue(MAX_PENDING_CHUNKS)
+        self.pending_chunks_queue = queue.Queue(config_params['max_pending_chunks'])
         self.build_block_lock = Lock()
-        self.locked_timer = LockedTimer(DISPATCH_TIMEOUT_SECONDS, self._timer_func)
+        self.locked_timer = LockedTimer(config_params['dispatch_block_timeout_seconds'], self._timer_func)
 
     def add_to_chunk_queue(self, chunk):
         added = False
@@ -35,7 +32,9 @@ class ChunkManager:
         return added
 
     def _wait_or_force_dispatch(self):
-        if self.pending_chunks_queue.qsize() >= MAX_CHUNKS_PER_BLOCK:
+        t_id = get_ident()
+
+        if self.pending_chunks_queue.qsize() >= self.MAX_CHUNKS_PER_BLOCK:
             logging.info(f"THREAD {t_id} @ CHUNK MGR: Reached max chunks per block, forcing dispatch")
 
             self.locked_timer.destroy()

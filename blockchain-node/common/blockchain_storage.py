@@ -5,9 +5,9 @@ import threading
 import datetime
 
 class BlockchainStorage:
-    def __init__(self, root_dir, locks_dir, locks_dir_lock):
+    def __init__(self, root_dir, locks_dir, locks_dir_lock, SUFFIX_LEN):
         self.root_dir = root_dir
-        self.SUFFIX_LEN = 64
+        self.SUFFIX_LEN = SUFFIX_LEN
         self.locks_dir = locks_dir
         self.locks_dir_lock = locks_dir_lock
     

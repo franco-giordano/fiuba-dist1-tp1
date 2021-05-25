@@ -5,8 +5,8 @@ from common.blockchain import Block
 from common.queries_transceiver import QueriesTransceiver
 
 class QueriesAPIServer(Server):
-    def __init__(self, port, listen_backlog, blockchain_storage):
-        Server.__init__(self, port, listen_backlog)
+    def __init__(self, config_params, blockchain_storage):
+        Server.__init__(self, config_params["queries_port"], config_params["listen_backlog"])
         self.blockchain_storage = blockchain_storage
 
     def handle_client_connection(self, queries_transceiver):

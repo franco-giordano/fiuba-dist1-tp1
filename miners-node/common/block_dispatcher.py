@@ -3,10 +3,9 @@ import threading
 import logging
 import copy
 
-MAX_CHUNKS_PER_BLOCK = 20
-
 class BlockDispatcher:
-    def __init__(self, pool_queues):
+    def __init__(self, pool_queues, max_chunks_per_block):
+        self.MAX_CHUNKS_PER_BLOCK = max_chunks_per_block
         self.miners_are_busy = False
         self.pool_queues = pool_queues
 
@@ -23,16 +22,16 @@ class BlockDispatcher:
 
         new_block = self._dequeue_and_build_block(chunks_queue)
         self._dispatch_block(new_block)
-        logging.info(f"BLOCK DPCHR: Pend Chunks Queue is now at: {chunks_queue.qsize()}/{MAX_CHUNKS_PER_BLOCK}")
+        logging.info(f"BLOCK DPCHR: Pend Chunks Queue is now at: {chunks_queue.qsize()}/{self.MAX_CHUNKS_PER_BLOCK}")
 
     def _dequeue_and_build_block(self, chunks_queue):
         entries = []
         amount = 0
-        while amount < MAX_CHUNKS_PER_BLOCK and not chunks_queue.empty():
+        while amount < self.MAX_CHUNKS_PER_BLOCK and not chunks_queue.empty():
             entries.append(chunks_queue.get_nowait())
             amount += 1
 
-        new_block = Block(entries)
+        new_block = Block(entries, self.MAX_CHUNKS_PER_BLOCK)
         return new_block
     
     def _dispatch_block(self, block):

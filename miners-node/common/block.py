@@ -3,13 +3,11 @@ from hashlib import sha256
 import json
 import copy
 
-MAX_ENTRIES_AMOUNT = 256
-
 def isCryptographicPuzzleSolved(aBlock):
     return aBlock.hash() < (2**256) / aBlock.header['difficulty'] - 1
     
 class Block: 
-    def __init__(self, entries):
+    def __init__(self, entries, MAX_CHUNKS_PER_BLOCK):
         self.header = {
             'prev_hash': 0,
             'nonce': 0,
@@ -17,7 +15,7 @@ class Block:
             'entries_amount': len(entries),
             'difficulty': 1
         }
-        if (len(entries) <= MAX_ENTRIES_AMOUNT):
+        if (len(entries) <= MAX_CHUNKS_PER_BLOCK):
             self.entries = entries
         else:
             raise 'Exceeding max block size'
