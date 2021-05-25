@@ -24,7 +24,7 @@ class Miner:
         while not isCryptographicPuzzleSolved(block):
             block.header['nonce'] += 1
             block.header['timestamp'] = datetime.datetime.now()
-        logging.info(f"MINER {self.id}: mined {block}")
+        logging.info(f"MINER {self.id}: mined with prev_hash {block.header['prev_hash']}")
 
         blockchain_transceiver.send_block(block)
         logging.info(f"MINER {self.id}: sent {block.serialize_str()}")
