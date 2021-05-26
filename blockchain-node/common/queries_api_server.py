@@ -1,7 +1,7 @@
 from common.server import Server
 import threading
 import logging
-from common.blockchain import Block
+from common.block import Block
 from common.queries_transceiver import QueriesTransceiver
 
 class QueriesAPIServer(Server):

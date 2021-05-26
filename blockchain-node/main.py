@@ -61,9 +61,9 @@ def main():
 	config_params = parse_config_params()
 
 	suffix_files = os.listdir(f"{config_params['blockchain_root_dir']}/by-suffix")
-	hourly_files = os.listdir(f"{config_params['blockchain_root_dir']}/by-hour")
+	by_minute_files = os.listdir(f"{config_params['blockchain_root_dir']}/by-minute")
 
-	locks_dir = create_file_locks(suffix_files, hourly_files)
+	locks_dir = create_file_locks(suffix_files, by_minute_files)
 	locks_dir_lock = threading.Lock()
 
 	query_api_thread = threading.Thread(target = query_api_init, args = (config_params, locks_dir, locks_dir_lock))
@@ -75,16 +75,16 @@ def main():
 
 	query_api_thread.join()
 
-def create_file_locks(suffix_files, hourly_files):
-	locks = {'by-suffix': {}, 'by-hour': {}}
+def create_file_locks(suffix_files, by_minute_files):
+	locks = {'by-suffix': {}, 'by-minute': {}}
 
 	for s in suffix_files:
 		locks['by-suffix'][s] = threading.Lock()
 
-	for h in hourly_files:
-		locks['by-hour'][h] = threading.Lock()
+	for m in by_minute_files:
+		locks['by-minute'][m] = threading.Lock()
 
-	logging.info(f'Created file locks for {len(suffix_files) + len(hourly_files)} files')
+	logging.info(f'Created file locks for {len(suffix_files) + len(by_minute_files)} files')
 	
 	return locks
 
