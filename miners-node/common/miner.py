@@ -15,15 +15,21 @@ class Miner:
             data = self.blocks_queue.get()
             logging.info(f"MINER {self.id}: received block with prev_hash {data.header['prev_hash']}")
             self.mine(data, blockchain_transceiver)
-            logging.info(f"MINER {self.id}: mined {data}")
-
 
     def mine(self, block, blockchain_transceiver):
         block.header['nonce'] += self.STARTING_NONCE
         block.header['timestamp'] = datetime.datetime.now()
-        while not isCryptographicPuzzleSolved(block):
+
+        while self.blocks_queue.empty() and not isCryptographicPuzzleSolved(block):
             block.header['nonce'] += 1
             block.header['timestamp'] = datetime.datetime.now()
+
+        if not self.blocks_queue.empty():
+            logging.info(f"MINER {self.id}: new block to mine received! Someone mined before me. Reporting stat...")
+            bad_report = StatsReportMsg.build_rejected_report(self.id)
+            self.stats_report_queue.put(bad_report)
+            return
+
         logging.info(f"MINER {self.id}: mined with prev_hash {block.header['prev_hash']}")
 
         blockchain_transceiver.send_block(block)

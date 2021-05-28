@@ -6,3 +6,7 @@ class StatsReportMsg:
             self.was_succesful_upload = False
         elif blockchain_response == 'BLOCK_ACCEPTED':
             self.was_succesful_upload = True
+    
+    @staticmethod
+    def build_rejected_report(miner_id):
+        return StatsReportMsg(miner_id, 'BLOCK_REJECTED')
